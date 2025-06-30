@@ -10,6 +10,9 @@ def generate_and_save_csr(matrix_name, matrix, output_dir='.'):
     np.savetxt(f'{output_dir}/py_{matrix_name}_indptr.txt', matrix.indptr, fmt='%d')
     np.savetxt(f'{output_dir}/py_{matrix_name}_indices.txt', matrix.indices, fmt='%d')
     np.savetxt(f'{output_dir}/py_{matrix_name}_data.txt', matrix.data, fmt='%.6f')
+    with open(f'{output_dir}/py_{matrix_name}_shape.txt', 'w') as f:
+        f.write(f"{matrix.shape[0]} {matrix.shape[1]}\n")
+
     print(f"Saved CSR components of {matrix_name} in {output_dir}/")
 
 def main():
