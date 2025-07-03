@@ -1,0 +1,41 @@
+
+
+Graph loaded with 10879 nodes and 39994 edges.
+==11140== NVPROF is profiling process 11140, command: ./fourth graph.txt
+
+Total SCCs found: 5991
+==11140== Profiling application: ./fourth graph.txt
+==11140== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   99.59%  23.0443s     12013  1.9183ms  1.4080us  10.012ms  bfs_kernel(int*, int*, int*, int*, int*, int*, int, int, bool*, bool)
+                    0.28%  65.330ms     24007  2.7210us  1.1510us  17.728us  [CUDA memcpy DtoH]
+                    0.08%  19.067ms     17973  1.0600us  1.0230us  2.4640us  void cub::CUB_200400_750_NS::detail::for_each::static_kernel<cub::CUB_200400_750_NS::detail::for_each::policy_hub_t::policy_350_t, long, thrust::THRUST_200400_750_NS::cuda_cub::__fill::functor<thrust::THRUST_200400_750_NS::detail::normal_iterator<thrust::THRUST_200400_750_NS::device_ptr<int>>, int>>(long, int)
+                    0.04%  9.0019ms     24008     374ns     351ns  15.935us  [CUDA memcpy HtoD]
+                    0.00%  343.51us         5  68.702us  66.750us  71.711us  wcc_label_propagation(int*, int*, int*, int*, bool*, int)
+                    0.00%  301.31us         6  50.217us  49.502us  52.959us  compute_degrees(int*, int*, int*, int*, int*, int)
+                    0.00%  44.256us        14  3.1610us  3.0720us  3.6480us  [CUDA memset]
+                    0.00%  22.816us         6  3.8020us  3.6480us  4.0000us  trim_kernel(int*, int*, int*, int*, int, bool*)
+                    0.00%  9.7280us         4  2.4320us  2.4000us  2.4640us  void cub::CUB_200400_750_NS::detail::for_each::static_kernel<cub::CUB_200400_750_NS::detail::for_each::policy_hub_t::policy_350_t, unsigned long, thrust::THRUST_200400_750_NS::cuda_cub::__uninitialized_fill::functor<thrust::THRUST_200400_750_NS::device_ptr<int>, int>>(unsigned long, int)
+                    0.00%  2.8480us         1  2.8480us  2.8480us  2.8480us  [CUDA memcpy DtoD]
+                    0.00%  2.4640us         1  2.4640us  2.4640us  2.4640us  void cub::CUB_200400_750_NS::detail::for_each::static_kernel<cub::CUB_200400_750_NS::detail::for_each::policy_hub_t::policy_350_t, long, thrust::THRUST_200400_750_NS::cuda_cub::__tabulate::functor<thrust::THRUST_200400_750_NS::detail::normal_iterator<thrust::THRUST_200400_750_NS::device_ptr<int>>, thrust::THRUST_200400_750_NS::system::detail::generic::detail::compute_sequence_value<int, void>, long>>(long, int)
+      API calls:   96.51%  23.4500s     24052  974.97us  2.5430us  13.257ms  cudaMemcpy
+                    1.47%  356.84ms     23964  14.890us  2.2280us  8.5872ms  cudaMemcpyAsync
+                    0.90%  219.77ms     30008  7.3230us  3.5810us  3.1382ms  cudaLaunchKernel
+                    0.55%  133.35ms     41942  3.1790us  1.4100us  8.2214ms  cudaStreamSynchronize
+                    0.40%  98.343ms        12  8.1953ms  2.7130us  98.245ms  cudaMalloc
+                    0.10%  24.982ms    185769     134ns      78ns  679.93us  cudaGetLastError
+                    0.04%  10.803ms     17979     600ns     215ns  571.21us  cudaGetDevice
+                    0.01%  3.1773ms     17978     176ns      83ns  522.63us  cudaPeekAtLastError
+                    0.00%  690.41us         1  690.41us  690.41us  690.41us  cudaFuncGetAttributes
+                    0.00%  257.65us        12  21.470us  2.5240us  170.70us  cudaFree
+                    0.00%  140.20us       114  1.2290us     103ns  60.381us  cuDeviceGetAttribute
+                    0.00%  91.662us        14  6.5470us  3.4470us  22.899us  cudaMemset
+                    0.00%  13.597us         1  13.597us  13.597us  13.597us  cuDeviceGetName
+                    0.00%  4.6130us         1  4.6130us  4.6130us  4.6130us  cuDeviceGetPCIBusId
+                    0.00%  1.0270us         3     342ns     117ns     672ns  cuDeviceGetCount
+                    0.00%     719ns         2     359ns     162ns     557ns  cuDeviceGet
+                    0.00%     485ns         1     485ns     485ns     485ns  cuDeviceTotalMem
+                    0.00%     405ns         1     405ns     405ns     405ns  cuModuleGetLoadingMode
+                    0.00%     254ns         1     254ns     254ns     254ns  cuDeviceGetUuid
+                    0.00%     215ns         1     215ns     215ns     215ns  cudaGetDeviceCount
+
