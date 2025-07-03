@@ -1,0 +1,299 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 6K of event 'cycles:Pu'
+# Event count (approx.): 6080661918
+#
+# Overhead  Command          Shared Object         Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+# ........  ...............  ....................  ...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    28.77%  spgemm_cpu_exec  spgemm_cpu_exec       [.] spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) [clone ._omp_fn.0]
+     8.24%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x0000000000020606
+     6.49%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<int, std::allocator<int> >::operator[](unsigned long) const
+     4.98%  spgemm_cpu_exec  libc.so.6             [.] __GI___printf_fp_l
+     4.48%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<float, std::allocator<float> >::operator[](unsigned long)
+     3.25%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator*() const
+     3.15%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<float, std::allocator<float> >::operator[](unsigned long) const
+     2.40%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::__ops::_Iter_less_iter::operator()<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >) const
+     1.85%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x0000000000020602
+     1.58%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > std::__unguarded_partition<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter)
+     1.47%  spgemm_cpu_exec  libc.so.6             [.] hack_digit
+     1.39%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Val_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Val_less_iter)
+     1.24%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator++()
+     1.18%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_float(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, std::string&) const
+     1.07%  spgemm_cpu_exec  libc.so.6             [.] __vfprintf_internal
+     0.97%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator--()
+     0.96%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)
+     0.93%  spgemm_cpu_exec  libc.so.6             [.] __mpn_divrem
+     0.91%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::remove_reference<int&>::type&& std::move<int&>(int&)
+     0.90%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::pair<int, float>& std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::emplace_back<std::pair<int, float> >(std::pair<int, float>&&)
+     0.85%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::__ops::_Val_less_iter::operator()<int, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >(int&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >) const
+     0.80%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_filebuf<char, std::char_traits<char> >::xsputn(char const*, long)
+     0.72%  spgemm_cpu_exec  libc.so.6             [.] __GI_____strtof_l_internal
+     0.67%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x00000000000207be
+     0.61%  spgemm_cpu_exec  spgemm_cpu_exec       [.] spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) [clone ._omp_fn.1]
+     0.57%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_float<double>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, char, double) const
+     0.57%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<int> >, std::is_move_constructible<int>, std::is_move_assignable<int> >::value, void>::type std::swap<int>(int&, int&)
+     0.53%  spgemm_cpu_exec  libc.so.6             [.] __mpn_mul_1
+     0.47%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::__normal_iterator(std::pair<int, float>* const&)
+     0.46%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<int, std::allocator<int> >::push_back(int const&)
+     0.45%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::istreambuf_iterator<char, std::char_traits<char> > std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_int<long>(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, long&) const
+     0.43%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream& std::ostream::_M_insert<double>(double)
+     0.41%  spgemm_cpu_exec  libc.so.6             [.] _IO_str_init_static_internal
+     0.41%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::operator!=<int*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&)
+     0.41%  spgemm_cpu_exec  libc.so.6             [.] __strlen_avx2
+     0.40%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_streambuf<char, std::char_traits<char> >::xsputn(char const*, long)
+     0.38%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator-(long) const
+     0.37%  spgemm_cpu_exec  libc.so.6             [.] __memmove_avx_unaligned_erms
+     0.37%  spgemm_cpu_exec  libc.so.6             [.] __mpn_cmp
+     0.35%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::operator< <int*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&)
+     0.33%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream& std::ostream::_M_insert<long>(long)
+     0.33%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream::sentry::sentry(std::ostream&)
+     0.32%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::istream::sentry::sentry(std::istream&, bool)
+     0.31%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::operator[](unsigned long)
+     0.30%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::pair<int, float>&& std::forward<std::pair<int, float> >(std::remove_reference<std::pair<int, float> >::type&)
+     0.30%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_int<long>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, long) const
+     0.29%  spgemm_cpu_exec  libc.so.6             [.] __memchr_avx2
+     0.29%  spgemm_cpu_exec  spgemm_cpu_exec       [.] write_vector_float(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<float, std::allocator<float> > const&)
+     0.27%  spgemm_cpu_exec  libc.so.6             [.] round_and_return
+     0.27%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::size() const
+     0.26%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012e931
+     0.25%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x000000000002060d
+     0.25%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::codecvt<char, char, __mbstate_t>::do_always_noconv() const
+     0.25%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::base() const
+     0.24%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >, std::allocator<std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > >::operator[](unsigned long)
+     0.24%  spgemm_cpu_exec  libc.so.6             [.] __strchrnul_avx2
+     0.23%  spgemm_cpu_exec  libc.so.6             [.] malloc
+     0.22%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator*() const
+     0.22%  spgemm_cpu_exec  libc.so.6             [.] __vsnprintf_internal
+     0.20%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::allocator_traits<std::allocator<int> >::construct<int, int const&>(std::allocator<int>&, int*, int const&)
+     0.19%  spgemm_cpu_exec  libc.so.6             [.] __uselocale
+     0.19%  spgemm_cpu_exec  libc.so.6             [.] str_to_mpn.constprop.0
+     0.18%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::back()
+     0.18%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::do_get(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, float&) const
+     0.18%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::end()
+     0.18%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ctype<char> const& std::use_facet<std::ctype<char> >(std::locale const&)
+     0.18%  spgemm_cpu_exec  libc.so.6             [.] _IO_no_init
+     0.17%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::iter_swap<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >)
+     0.17%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void __gnu_cxx::new_allocator<int>::construct<int, int const&>(int*, int const&)
+     0.17%  spgemm_cpu_exec  spgemm_cpu_exec       [.] int const& std::forward<int const&>(std::remove_reference<int const&>::type&)
+     0.16%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::istream& std::istream::_M_extract<float>(float&)
+     0.15%  spgemm_cpu_exec  spgemm_cpu_exec       [.] operator new(unsigned long, void*)
+     0.15%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__enable_if<std::__is_scalar<float>::__value, void>::__type std::__fill_a1<float*, float>(float*, float*, float const&)
+     0.15%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::pair<int, float>::pair<int&, float&, true>(int&, float&)
+     0.14%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::operator!=<float const*, std::vector<float, std::allocator<float> > >(__gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > > const&, __gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > > const&)
+     0.14%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::locale::facet::_S_get_c_locale()
+     0.13%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator+(long) const
+     0.13%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::__normal_iterator(int* const&)
+     0.11%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::__move_median_to_first<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter)
+     0.11%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::__introsort_loop<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, long, __gnu_cxx::__ops::_Iter_less_iter)
+     0.11%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::do_put(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, double) const
+     0.11%  spgemm_cpu_exec  libc.so.6             [.] __mpn_extract_double
+     0.10%  spgemm_cpu_exec  libc.so.6             [.] __mpn_lshift
+     0.10%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] void std::__convert_to_v<float>(char const*, float&, std::_Ios_Iostate&, __locale_struct* const&)
+     0.10%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x00000000000207ba
+     0.10%  spgemm_cpu_exec  libc.so.6             [.] _IO_old_init
+     0.09%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void __gnu_cxx::new_allocator<std::pair<int, float> >::construct<std::pair<int, float>, std::pair<int, float> >(std::pair<int, float>*, std::pair<int, float>&&)
+     0.09%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::operator*() const
+     0.09%  spgemm_cpu_exec  spgemm_cpu_exec       [.] write_vector_int(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<int, std::allocator<int> > const&)
+     0.09%  spgemm_cpu_exec  spgemm_cpu_exec       [.] float& std::forward<float&>(std::remove_reference<float&>::type&)
+     0.08%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<float, std::allocator<float> >::push_back(float const&)
+     0.08%  spgemm_cpu_exec  libc.so.6             [.] _IO_setb
+     0.08%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::operator++()
+     0.08%  spgemm_cpu_exec  libc.so.6             [.] __mpn_rshift
+     0.08%  spgemm_cpu_exec  libc.so.6             [.] __memmove_avx_unaligned
+     0.08%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b26b
+     0.08%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::do_put(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, long) const
+     0.08%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::push_back(std::pair<int, float>&&)
+     0.07%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::locale::id::_M_id() const
+     0.07%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b259
+     0.07%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<int, std::allocator<int> >::operator[](unsigned long)
+     0.07%  spgemm_cpu_exec  spgemm_cpu_exec       [.] float const& std::forward<float const&>(std::remove_reference<float const&>::type&)
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::locale::id::_M_id() const@plt
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::__num_base::_S_format_float(std::ios_base const&, char*, char)
+     0.06%  spgemm_cpu_exec  libc.so.6             [.] _IO_default_xsputn
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb4bf
+     0.06%  spgemm_cpu_exec  libc.so.6             [.] __libc_alloca_cutoff
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::difference_type __gnu_cxx::operator-<int*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&)
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::base() const
+     0.06%  spgemm_cpu_exec  libc.so.6             [.] __mpn_mul
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] bool __gnu_cxx::operator!=<int const*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > > const&)
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::operator++()
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::__unguarded_insertion_sort<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter)
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::_Rep::_S_create(unsigned long, unsigned long, std::allocator<char> const&)
+     0.06%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::istream::operator>>(int&)
+     0.06%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600ef0
+     0.06%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::allocator_traits<std::allocator<std::pair<int, float> > >::construct<std::pair<int, float>, std::pair<int, float> >(std::allocator<std::pair<int, float> >&, std::pair<int, float>*, std::pair<int, float>&&)
+     0.06%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x000000000002060f
+     0.05%  spgemm_cpu_exec  libc.so.6             [.] cfree@GLIBC_2.2.5
+     0.05%  spgemm_cpu_exec  libc.so.6             [.] _int_free
+     0.05%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__enable_if<std::__is_scalar<int>::__value, void>::__type std::__fill_a1<int*, int>(int*, int*, int const&)
+     0.05%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::operator*() const
+     0.05%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb456
+     0.05%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] __uselocale@plt
+     0.05%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::push_back(char)
+     0.05%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012e91d
+     0.04%  spgemm_cpu_exec  libc.so.6             [.] _int_malloc
+     0.04%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > std::__unguarded_partition_pivot<__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter>(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >, __gnu_cxx::__ops::_Iter_less_iter)
+     0.04%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b244
+     0.04%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600b90
+     0.04%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void __gnu_cxx::new_allocator<float>::construct<float, float const&>(float*, float const&)
+     0.04%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_ios<char, std::char_traits<char> >::operator bool() const
+     0.04%  spgemm_cpu_exec  spgemm_cpu_exec       [.] void std::allocator_traits<std::allocator<float> >::construct<float, float const&>(std::allocator<float>&, float*, float const&)
+     0.04%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012fb47
+     0.04%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::reserve(unsigned long)
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb4a6
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb410
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb471
+     0.03%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator-(long) const
+     0.03%  spgemm_cpu_exec  libc.so.6             [.] memcpy@@GLIBC_2.14@plt
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb467
+     0.03%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::base() const
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b267
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b24d
+     0.03%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::remove_reference<std::pair<int, float>&>::type&& std::move<std::pair<int, float>&>(std::pair<int, float>&)
+     0.03%  spgemm_cpu_exec  libc.so.6             [.] __mpn_construct_float
+     0.03%  spgemm_cpu_exec  spgemm_cpu_exec       [.] read_vector_float(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b26e
+     0.03%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::_Rep::_S_create(unsigned long, unsigned long, std::allocator<char> const&)@plt
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000010352d
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] operator new(unsigned long)
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::do_get(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, long&) const
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b246
+     0.02%  spgemm_cpu_exec  spgemm_cpu_exec       [.] read_vector_int(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+     0.02%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_relocate_object
+     0.02%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x0000000000020609
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b276
+     0.02%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa70410b
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb4ba
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb425
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::locale::facet::_S_get_c_locale()@plt
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb4d4
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb42c
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb44e
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb4c8
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb431
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb446
+     0.02%  spgemm_cpu_exec  libc.so.6             [.] pthread_once@GLIBC_2.2.5
+     0.02%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4af8d1
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] pthread_once@plt
+     0.02%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9731448
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x00000000000fb400
+     0.02%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa973116b
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream::operator<<(float)
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::_Rep::_M_clone(std::allocator<char> const&, unsigned long)
+     0.02%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600b93
+     0.02%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<int, std::allocator<int> >::reserve(unsigned long)
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012fb14
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream::operator<<(int)
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ostream::sentry::sentry(std::ostream&)@plt
+     0.02%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012e933
+     0.02%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::capacity() const
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92b41a4
+     0.01%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x00000000000207c6
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4b0490
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600080
+     0.01%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::__ops::__val_comp_iter(__gnu_cxx::__ops::_Iter_less_iter)
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012e928
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92bf6a2
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92b41be
+     0.01%  spgemm_cpu_exec  spgemm_cpu_exec       [.] __gnu_cxx::new_allocator<float>::new_allocator()
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6015d7
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4099db
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6015ea
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4ac1b8
+     0.01%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::basic_ios<char, std::char_traits<char> >::operator bool() const@plt
+     0.01%  spgemm_cpu_exec  libc.so.6             [.] __strtof_l
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa409a9e
+     0.01%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::vector<int, std::allocator<int> >::size() const
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4afb51
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa42b3db
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4ac1c4
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::string::_Rep::_M_destroy(std::allocator<char> const&)@plt
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::istream::sentry::sentry(std::istream&, bool)@plt
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012fb1d
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92dbcd1
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9667228
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012fb35
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x0000000000103516
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] 0x000000000012b25f
+     0.01%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92dbf3d
+     0.01%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::ctype<wchar_t>::ctype(unsigned long)
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] handle_amd
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92dbf68
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] do_lookup_x
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_cache_libcmp
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa920a3d0
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_check_map_versions
+     0.00%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_filebuf<char, std::char_traits<char> >::close()
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] open_path
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_start
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4b049b
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_map_object_from_fd
+     0.00%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x000000000001db48
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] _dl_load_cache_lookup
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92df98a
+     0.00%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x000000000001dae5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9744cac
+     0.00%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_filebuf<char, std::char_traits<char> >::_M_allocate_internal_buffer()
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa96afd2d
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa97259c7
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92df8e0
+     0.00%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x000000000001f7a4
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92df981
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa96ad9e6
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa96ada22
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa972599c
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa974b965
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa96809f2
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] _IO_file_finish@@GLIBC_2.2.5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa93bb45a
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa974b401
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9aae01e
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] _IO_file_close_it@@GLIBC_2.2.5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa920a728
+     0.00%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] 0x00000000000206bf
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9aae001
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa972eb10
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa42b3b3
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] memmove
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9322ef5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4a9211
+     0.00%  spgemm_cpu_exec  libstdc++.so.6.0.30   [.] std::basic_filebuf<char, std::char_traits<char> >::open(char const*, std::_Ios_Openmode)
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4b0922
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9662596
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600083
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa60012d
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6001b9
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4a92b8
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9322f11
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600112
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa600f30
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa4a92bf
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] start_thread
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] __strchr_avx2
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa920a814
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] __sigjmp_save
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] arena_get2.part.0
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6000c6
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6015e5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa60008b
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa9209f15
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6000b0
+     0.00%  spgemm_cpu_exec  ld-linux-x86-64.so.2  [.] open_verify.constprop.0
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] _IO_file_open
+     0.00%  spgemm_cpu_exec  libc.so.6             [.] __strstr_sse2
+     0.00%  spgemm_cpu_exec  libgomp.so.1.0.0      [.] omp_get_num_threads
+     0.00%  spgemm_cpu_exec  spgemm_cpu_exec       [.] std::istream::operator>>(int&)@plt
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffa92dbcf9
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6000c5
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa6000da
+     0.00%  spgemm_cpu_exec  [unknown]             [k] 0xffffffffaa704104
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
