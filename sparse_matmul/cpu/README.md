@@ -12,3 +12,20 @@ Sample commands to compile the LLM written code:
 `g++ -std=c++17 -fopenmp -I../utils main.cpp gemini_1.cpp ../utils/csr_io.cpp  -o spgemm_cpu_exec`
 
 `g++ -std=c++17 -fopenmp -I../utils main.cpp chatgpt_1.cpp ../utils/csr_io.cpp -o spgemm_cpu_exec`
+
+Perf:
+
+```
+perf record ./spgemm_cpu_exec
+perf report
+perf annotate
+perf stat -e cycles,instructions,cache-references,cache-misses,branches,branch-misses ./spgemm_cpu_exec
+```
+
+Valgrind/Callgrind:
+
+```
+valgrind --tool=callgrind ./spgemm_cpu_exec
+callgrind_annotate callgrind.out.72066 | less > gemini_callgrind1.txt
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./spgemm_cpu_exec 2> gemini_valgrind1.txt
+```
