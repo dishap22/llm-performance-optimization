@@ -10,8 +10,8 @@ import pandas as pd
 from pathlib import Path
 
 # Settings
-matrix_sizes = [256, 512, 1024, 2048]  # Matrix sizes to test
-densities = [0.01, 0.05, 0.1]     # Different sparsity patterns
+matrix_sizes = [256, 512, 1024, 2048, 4096]  # Matrix sizes to test
+densities = [0.05, 0.1, 0.2]     # Different sparsity patterns
 warmup_runs = 3                         # Number of warmup runs
 benchmark_runs = 10                     # Number of benchmark runs
 cpu_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,8 +23,10 @@ csr_io_cpp = "../utils/csr_io.cpp"
 # Implementation mapping
 IMPLEMENTATIONS = {
     "human_baseline.cpp": "Intel MKL Baseline",
-    "chatgpt_2.cpp": "ChatGPT Implementation",
-    "gemini_1.cpp": "Gemini Implementation"
+    "chatgpt_2.cpp": "ChatGPT 1st Implementation",
+    "gemini_1.cpp": "Gemini 1st Implementation",
+    "chatgpt_3.cpp": "ChatGPT 2nd Implementation",
+    "gemini_2.cpp": "Gemini 2nd Implementation"
 }
 
 def generate_matrices(n, density=0.1):

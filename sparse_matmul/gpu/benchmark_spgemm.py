@@ -23,8 +23,9 @@ csr_io_cpp = "../utils/csr_io.cpp"
 # Implementation mapping (similar to SGEMM_CUDA kernel names)
 IMPLEMENTATIONS = {
     "human_baseline.cpp": "cuSPARSE Baseline",
-    "chatgpt_5.cu": "ChatGPT Implementation",
-    "gemini_1.cu": "Gemini Implementation"
+    "chatgpt_5.cu": "ChatGPT 1st Implementation",
+    "gemini_1.cu": "Gemini 1st Implementation",
+    "chatgpt_7.cu": "ChatGPT 2nd Implementation"
 }
 
 def generate_matrices(n, density=0.1):
