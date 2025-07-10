@@ -1,0 +1,65 @@
+==9196== Memcheck, a memory error detector
+==9196== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==9196== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==9196== Command: ./spgemm_cpu_exec
+==9196== 
+==9196== 
+==9196== HEAP SUMMARY:
+==9196==     in use at exit: 9,824 bytes in 19 blocks
+==9196==   total heap usage: 5,039,617 allocs, 5,039,598 frees, 233,348,352 bytes allocated
+==9196== 
+==9196== 8 bytes in 1 blocks are still reachable in loss record 1 of 5
+==9196==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==9196==    by 0x4AAD84C: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AC00BA: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AABFE1: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x400647D: call_init.part.0 (dl-init.c:70)
+==9196==    by 0x4006567: call_init (dl-init.c:33)
+==9196==    by 0x4006567: _dl_init (dl-init.c:117)
+==9196==    by 0x40202C9: ??? (in /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+==9196== 
+==9196== 136 bytes in 1 blocks are still reachable in loss record 2 of 5
+==9196==    at 0x48487A9: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==9196==    by 0x4AAD8AC: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4ABEB3C: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AB4A10: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x10B561: spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196==    by 0x10A7E9: main (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196== 
+==9196== 192 bytes in 1 blocks are still reachable in loss record 3 of 5
+==9196==    at 0x4848899: malloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==9196==    by 0x4AAD84C: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4ABDE0B: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AB49F9: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x10B561: spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196==    by 0x10A7E9: main (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196== 
+==9196== 4,560 bytes in 15 blocks are possibly lost in loss record 4 of 5
+==9196==    at 0x484DA83: calloc (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==9196==    by 0x40147D9: calloc (rtld-malloc.h:44)
+==9196==    by 0x40147D9: allocate_dtv (dl-tls.c:375)
+==9196==    by 0x40147D9: _dl_allocate_tls (dl-tls.c:634)
+==9196==    by 0x4BA17B4: allocate_stack (allocatestack.c:430)
+==9196==    by 0x4BA17B4: pthread_create@@GLIBC_2.34 (pthread_create.c:647)
+==9196==    by 0x4ABE25F: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AB4A10: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x10B561: spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196==    by 0x10A7E9: main (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196== 
+==9196== 4,928 bytes in 1 blocks are still reachable in loss record 5 of 5
+==9196==    at 0x484E120: memalign (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==9196==    by 0x4AAD8E8: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4ABDC96: ??? (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x4AB49F9: GOMP_parallel (in /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0)
+==9196==    by 0x10B561: spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196==    by 0x10A7E9: main (in /home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec)
+==9196== 
+==9196== LEAK SUMMARY:
+==9196==    definitely lost: 0 bytes in 0 blocks
+==9196==    indirectly lost: 0 bytes in 0 blocks
+==9196==      possibly lost: 4,560 bytes in 15 blocks
+==9196==    still reachable: 5,264 bytes in 4 blocks
+==9196==         suppressed: 0 bytes in 0 blocks
+==9196== 
+==9196== For lists of detected and suppressed errors, rerun with: -s
+==9196== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 0 from 0)

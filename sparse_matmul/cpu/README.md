@@ -33,6 +33,6 @@ Valgrind/Callgrind:
 
 ```
 valgrind --tool=callgrind ./spgemm_cpu_exec
-callgrind_annotate callgrind.out.74326 | less > chatgpt_callgrind1.txt
-valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./spgemm_cpu_exec 2> chatgpt_valgrind1.txt
+callgrind_annotate callgrind.out.10721 | less > gemini_callgrind2.txt
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./spgemm_cpu_exec 2> gemini_valgrind2.txt
 ```
