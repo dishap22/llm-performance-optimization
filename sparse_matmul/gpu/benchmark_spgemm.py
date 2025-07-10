@@ -25,7 +25,8 @@ IMPLEMENTATIONS = {
     "human_baseline.cpp": "cuSPARSE Baseline",
     "chatgpt_5.cu": "ChatGPT 1st Implementation",
     "gemini_1.cu": "Gemini 1st Implementation",
-    "chatgpt_7.cu": "ChatGPT 2nd Implementation"
+    "chatgpt_7.cu": "ChatGPT 2nd Implementation",
+    "gemini_7.cu": "Gemini 2nd Implementation"
 }
 
 def generate_matrices(n, density=0.1):
