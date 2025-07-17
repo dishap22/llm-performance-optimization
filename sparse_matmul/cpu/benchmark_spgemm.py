@@ -62,7 +62,7 @@ def compile_impl(impl):
             f"source /opt/intel/oneapi/setvars.sh && "
             f"g++ -std=c++17 -I../utils -I/opt/intel/oneapi/mkl/latest/include "
             f"{main} {csr_io} {src} -L/opt/intel/oneapi/mkl/latest/lib/intel64 "
-            f"-lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl "
+            f"-lmkl_intel_lp64 -lmkl_intel_thread -liomp5 -lmkl_core -lpthread -lm -ldl "
             f"-o {exec_path} -O3"
         ]
 
