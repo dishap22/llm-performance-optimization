@@ -1,524 +1,451 @@
 #include <iostream>
-#include <vector>
-#include <string>
 #include <fstream>
-#include <sstream>
+#include <vector>
+#include <stack>
 #include <algorithm>
-#include <unordered_map>
-#include <stdexcept>
-#include <deque>
-#include <mutex>
-#include <set>
-#include <omp.h>
+#include <chrono> // For measuring execution time
+#include <numeric> // For std::iota
+
+// CUDA runtime API
 #include <cuda_runtime.h>
-#include <device_launch_parameters.h>
 
-// ===================================================================
-// UTILITIES & FORWARD DECLARATIONS
-// ===================================================================
+// Macro for CUDA error checking
+#define CUDA_CHECK(call)                                                          \
+    do {                                                                          \
+        cudaError_t err = call;                                                   \
+        if (err != cudaSuccess) {                                                 \
+            fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__,     \
+                    cudaGetErrorString(err));                                     \
+            exit(EXIT_FAILURE);                                                   \
+        }                                                                         \
+    } while (0)
 
-// Macro for robust CUDA error checking
-#define CHECK_CUDA_ERROR(val) check((val), #val, __FILE__, __LINE__)
-template <typename T>
-void check(T err, const char* const func, const char* const file, const int line) {
-    if (err != cudaSuccess) {
-        std::cerr << "CUDA error at " << file << ":" << line << std::endl;
-        std::cerr << cudaGetErrorString(err) << " " << func << std::endl;
-        exit(1);
+// --- Device Kernels ---
+
+// Kernel to initialize an array on the device
+__global__ void initializeArrayKernel(int* d_array, int value, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        d_array[idx] = value;
     }
 }
 
-// Structure to hold graph data on the host before moving to CUDA device
-struct Graph {
-    int num_nodes;
-    int num_edges;
-    std::vector<int> forward_offsets;
-    std::vector<int> forward_edges;
-    std::vector<int> backward_offsets;
-    std::vector<int> backward_edges;
-};
-
-// Main class to manage the SCC detection process on the GPU
-class SccSolverCuda {
-public:
-    SccSolverCuda(Graph& h_graph);
-    ~SccSolverCuda();
-    void run_method2();
-    std::vector<std::vector<int>> get_sccs();
-
-private:
-    // Device pointers for graph structure
-    int* d_forward_offsets;
-    int* d_forward_edges;
-    int* d_backward_offsets;
-    int* d_backward_edges;
-
-    // Device pointers for node states
-    int* d_colors;
-    int* d_marks;
-    int* d_wcc_ids;
-    int* d_scc_buffer;
-    int* d_scc_buffer_count;
-
-    // Host and device pointers for tracking changes
-    int* h_changed;
-    int* d_changed;
-
-    // Graph dimensions
-    int num_nodes;
-    int num_edges;
-
-    // Host-side data for managing the final phase
-    Graph& host_graph;
-    std::vector<std::vector<int>> final_sccs;
-    int next_color;
-
-    // GPU-heavy parallel functions
-    void par_trim(const std::string& phase_name);
-    void par_fwbw();
-    void par_trim2();
-    void par_wcc();
-
-    // CPU-based processing for small, recursive tasks
-    void process_work_queue_on_cpu(std::deque<int>& work_queue, std::vector<int>& h_colors, std::vector<int>& h_marks);
-    void recur_fwbw_on_cpu(int color_c, std::vector<int>& h_colors, std::vector<int>& h_marks, std::deque<int>& work_queue, std::mutex& queue_mutex);
-    void dfs_reach_on_cpu(int u, bool forward, std::vector<int>& reach, int target_color, const std::vector<int>& h_colors, const std::vector<int>& h_marks, std::vector<bool>& visited);
-
-    // Helper to collect newly identified SCCs from the device
-    void collect_sccs_from_buffer(const std::string& type);
-};
-
-// Function to load the graph from a file (CPU task)
-Graph load_graph_from_file(const std::string& filename);
-
-// ===================================================================
-// KERNEL DEFINITIONS
-// ===================================================================
-
-__global__ void par_trim_kernel(int num_nodes, int* fwd_offsets, int* fwd_edges, int* bwd_offsets, int* bwd_edges, int* colors, int* marks, int* d_changed, int* d_scc_buffer, int* d_scc_buffer_count) {
-    int u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes || marks[u] == 1) return;
-
-    int current_color = colors[u];
-    int in_degree = 0;
-    for (int i = bwd_offsets[u]; i < bwd_offsets[u + 1]; ++i) {
-        int v = bwd_edges[i];
-        if (marks[v] == 0 && colors[v] == current_color) in_degree++;
-    }
-
-    int out_degree = 0;
-    for (int i = fwd_offsets[u]; i < fwd_offsets[u + 1]; ++i) {
-        int v = fwd_edges[i];
-        if (marks[v] == 0 && colors[v] == current_color) out_degree++;
-    }
-
-    if (in_degree == 0 || out_degree == 0) {
-        if (atomicCAS(&marks[u], 0, 1) == 0) {
-            atomicExch(d_changed, 1);
-            int idx = atomicAdd(d_scc_buffer_count, 1);
-            d_scc_buffer[idx] = u;
-        }
+// Kernel to initialize a boolean array on the device
+__global__ void initializeBoolArrayKernel(bool* d_array, bool value, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        d_array[idx] = value;
     }
 }
 
-__global__ void par_trim2_kernel(int num_nodes, int* fwd_offsets, int* fwd_edges, int* bwd_offsets, int* bwd_edges, int* colors, int* marks, int* d_scc_buffer, int* d_scc_buffer_count) {
-    int u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes || marks[u] == 1) return;
-
-    int current_color = colors[u];
-
-    int fwd_degree = 0; int fwd_neighbor = -1;
-    for (int i = fwd_offsets[u]; i < fwd_offsets[u + 1]; ++i) {
-        int v_cand = fwd_edges[i];
-        if (marks[v_cand] == 0 && colors[v_cand] == current_color) {
-            fwd_degree++;
-            fwd_neighbor = v_cand;
-        }
+// Kernel to compute initial in-degrees and out-degrees
+__global__ void computeDegreesKernel(int num_nodes, const int* d_adj_list_starts, const int* d_adj_list_edges,
+                                    const int* d_transposed_adj_list_starts, const int* d_transposed_adj_list_edges,
+                                    int* d_out_degree, int* d_in_degree) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (node_idx < num_nodes) {
+        d_out_degree[node_idx] = d_adj_list_starts[node_idx + 1] - d_adj_list_starts[node_idx];
+        d_in_degree[node_idx] = d_transposed_adj_list_starts[node_idx + 1] - d_transposed_adj_list_starts[node_idx];
     }
+}
 
-    int bwd_degree = 0; int bwd_neighbor = -1;
-    for (int i = bwd_offsets[u]; i < bwd_offsets[u + 1]; ++i) {
-        int v_cand = bwd_edges[i];
-        if (marks[v_cand] == 0 && colors[v_cand] == current_color) {
-            bwd_degree++;
-            bwd_neighbor = v_cand;
-        }
-    }
+// Kernel for the trimming step
+__global__ void trimGraphKernel(int num_nodes,
+                                const int* d_adj_list_starts, const int* d_adj_list_edges,
+                                const int* d_transposed_adj_list_starts, const int* d_transposed_adj_list_edges,
+                                int* d_out_degree, int* d_in_degree,
+                                int* d_node_status, // 0: active, 1: trimmed, assigned SCC ID
+                                int* d_scc_id,
+                                int current_scc_id_base, // Base for new SCC IDs
+                                int* d_trimmed_count // Atomic counter for newly trimmed nodes
+                                ) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (fwd_degree == 1 && bwd_degree == 1 && fwd_neighbor == bwd_neighbor) {
-        int v = fwd_neighbor;
-        if (u >= v) return;
+    if (node_idx < num_nodes) {
+        // Only process active nodes (status 0)
+        if (d_node_status[node_idx] == 0) {
+            // Check if it's a source (out-degree 0) or a sink (in-degree 0)
+            if (d_out_degree[node_idx] == 0 || d_in_degree[node_idx] == 0) {
+                // Atomically assign SCC ID and mark as trimmed
+                int old_status = atomicCAS(&d_node_status[node_idx], 0, 1); // Mark as trimmed (status 1)
+                if (old_status == 0) { // If successfully marked as trimmed
+                    atomicExch(&d_scc_id[node_idx], current_scc_id_base + atomicAdd(d_trimmed_count, 1));
 
-        int v_bwd_degree = 0;
-        for (int i = bwd_offsets[v]; i < bwd_offsets[v + 1]; ++i) {
-            int w_cand = bwd_edges[i];
-            if (marks[w_cand] == 0 && colors[w_cand] == current_color) v_bwd_degree++;
-        }
+                    // Decrement in-degree of neighbors for sources (out-degree 0)
+                    if (d_out_degree[node_idx] == 0) { // It's a source node
+                        int start_edge = d_transposed_adj_list_starts[node_idx];
+                        int end_edge = d_transposed_adj_list_starts[node_idx + 1];
+                        for (int i = start_edge; i < end_edge; ++i) {
+                            int neighbor = d_transposed_adj_list_edges[i]; // Neighbor in original graph points to this source
+                            if (d_node_status[neighbor] == 0) { // Only affect active neighbors
+                                atomicSub(&d_out_degree[neighbor], 1); // Its out-degree decreases as this edge is "removed"
+                            }
+                        }
+                    }
 
-        if (v_bwd_degree == 1) {
-             if (atomicCAS(&marks[u], 0, 1) == 0 && atomicCAS(&marks[v], 0, 1) == 0) {
-                int idx = atomicAdd(d_scc_buffer_count, 2);
-                d_scc_buffer[idx] = u;
-                d_scc_buffer[idx+1] = v;
+                    // Decrement out-degree of neighbors for sinks (in-degree 0)
+                    if (d_in_degree[node_idx] == 0) { // It's a sink node
+                        int start_edge = d_adj_list_starts[node_idx];
+                        int end_edge = d_adj_list_starts[node_idx + 1];
+                        for (int i = start_edge; i < end_edge; ++i) {
+                            int neighbor = d_adj_list_edges[i]; // Neighbor in original graph is pointed to by this sink
+                            if (d_node_status[neighbor] == 0) { // Only affect active neighbors
+                                atomicSub(&d_in_degree[neighbor], 1); // Its in-degree decreases as this edge is "removed"
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
-__global__ void wcc_init_kernel(int num_nodes, int* wcc_ids) {
-    int u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes) return;
-    wcc_ids[u] = u;
-}
 
-__global__ void wcc_propagate_kernel(int num_nodes, int* fwd_offsets, int* fwd_edges, int* bwd_offsets, int* bwd_edges, int* wcc_ids, int* colors, int* marks, int* d_changed) {
-    int u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes || marks[u] == 1) return;
+// Kernel for the first pass: BFS-like traversal to determine an approximate finishing order.
+__global__ void firstPassKernel(int num_nodes, const int* d_adj_list_starts, const int* d_adj_list_edges,
+                                int* d_visited, // 0: unvisited, 1: visiting, 2: finished
+                                int* d_finishing_order, int* d_current_time,
+                                bool* d_queue, bool* d_next_queue, int* d_active_count,
+                                const int* d_node_status // To ignore trimmed nodes
+                                ) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int u_wcc = wcc_ids[u];
-    int current_color = colors[u];
+    if (node_idx < num_nodes) {
+        if (d_node_status[node_idx] != 0) return; // Skip trimmed nodes
 
-    for (int i = fwd_offsets[u]; i < fwd_offsets[u + 1]; ++i) {
-        int v = fwd_edges[i];
-        if (marks[v] == 0 && colors[v] == current_color) {
-            int v_wcc = wcc_ids[v];
-            if (u_wcc < v_wcc) {
-                if(atomicMin(&wcc_ids[v], u_wcc) > u_wcc) atomicExch(d_changed, 1);
+        if (d_queue[node_idx]) { // If this node is active in the current queue
+            // Mark node as visiting (0 -> 1)
+            atomicExch(&d_visited[node_idx], 1);
+
+            // Process neighbors
+            int start_edge = d_adj_list_starts[node_idx];
+            int end_edge = d_adj_list_starts[node_idx + 1];
+
+            for (int i = start_edge; i < end_edge; ++i) {
+                int neighbor = d_adj_list_edges[i];
+                if (d_node_status[neighbor] == 0) { // Only consider active neighbors
+                    // If neighbor is unvisited (0), try to mark it as visiting (1) and add to next queue
+                    if (atomicCAS(&d_visited[neighbor], 0, 1) == 0) {
+                        d_next_queue[neighbor] = true; // Add to next level's queue
+                        atomicAdd(d_active_count, 1); // Increment active count for next iteration
+                    }
+                }
             }
-        }
-    }
-    for (int i = bwd_offsets[u]; i < bwd_offsets[u + 1]; ++i) {
-        int v = bwd_edges[i];
-        if (marks[v] == 0 && colors[v] == current_color) {
-            int v_wcc = wcc_ids[v];
-            if (u_wcc < v_wcc) {
-                if(atomicMin(&wcc_ids[v], u_wcc) > u_wcc) atomicExch(d_changed, 1);
+
+            // This node is now processed for this level, mark it "finished" (1 -> 2)
+            if (atomicExch(&d_visited[node_idx], 2) == 1) {
+                int time = atomicAdd(d_current_time, 1);
+                d_finishing_order[num_nodes - 1 - time] = node_idx; // Store in reverse order for Kosaraju
             }
+            d_queue[node_idx] = false; // Deactivate from current queue
         }
     }
 }
 
-__global__ void wcc_compress_kernel(int num_nodes, int* wcc_ids, int* marks) {
-    int u = blockIdx.x * blockDim.x + threadIdx.x;
-    if (u >= num_nodes || marks[u] == 1) return;
+// Kernel for the second pass: BFS-like traversal on the transposed graph to identify SCCs.
+__global__ void secondPassKernel(int num_nodes, const int* d_transposed_adj_list_starts, const int* d_transposed_adj_list_edges,
+                                 int* d_visited, // 0: unvisited, 1: visited
+                                 int* d_scc_id, int current_scc_id,
+                                 bool* d_queue, bool* d_next_queue, int* d_active_count,
+                                 const int* d_node_status // To ignore trimmed nodes
+                                ) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    while(wcc_ids[u] != wcc_ids[wcc_ids[u]]) {
-        wcc_ids[u] = wcc_ids[wcc_ids[u]];
-    }
-}
+    if (node_idx < num_nodes) {
+        if (d_node_status[node_idx] != 0) return; // Skip trimmed nodes
 
-// ===================================================================
-// SccSolverCuda Class Implementation
-// ===================================================================
+        if (d_queue[node_idx]) { // If this node is active in the current queue
+            // Mark as visited and assign SCC ID
+            atomicExch(&d_visited[node_idx], 1); // Mark as visited (1) for second pass
+            atomicExch(&d_scc_id[node_idx], current_scc_id); // Assign SCC ID
 
-SccSolverCuda::SccSolverCuda(Graph& h_graph) : host_graph(h_graph) {
-    num_nodes = h_graph.num_nodes;
-    num_edges = h_graph.num_edges;
-    next_color = 1;
+            // Process neighbors in the transposed graph
+            int start_edge = d_transposed_adj_list_starts[node_idx];
+            int end_edge = d_transposed_adj_list_starts[node_idx + 1];
 
-    CHECK_CUDA_ERROR(cudaMalloc(&d_forward_offsets, (num_nodes + 1) * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_forward_edges, num_edges * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_backward_offsets, (num_nodes + 1) * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_backward_edges, num_edges * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_colors, num_nodes * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_marks, num_nodes * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_wcc_ids, num_nodes * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_scc_buffer, num_nodes * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_scc_buffer_count, sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMalloc(&d_changed, sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMallocHost(&h_changed, sizeof(int)));
-
-    CHECK_CUDA_ERROR(cudaMemcpy(d_forward_offsets, h_graph.forward_offsets.data(), (num_nodes + 1) * sizeof(int), cudaMemcpyHostToDevice));
-    CHECK_CUDA_ERROR(cudaMemcpy(d_forward_edges, h_graph.forward_edges.data(), num_edges * sizeof(int), cudaMemcpyHostToDevice));
-    CHECK_CUDA_ERROR(cudaMemcpy(d_backward_offsets, h_graph.backward_offsets.data(), (num_nodes + 1) * sizeof(int), cudaMemcpyHostToDevice));
-    CHECK_CUDA_ERROR(cudaMemcpy(d_backward_edges, h_graph.backward_edges.data(), num_edges * sizeof(int), cudaMemcpyHostToDevice));
-
-    CHECK_CUDA_ERROR(cudaMemset(d_colors, 0, num_nodes * sizeof(int)));
-    CHECK_CUDA_ERROR(cudaMemset(d_marks, 0, num_nodes * sizeof(int)));
-}
-
-SccSolverCuda::~SccSolverCuda() {
-    cudaFree(d_forward_offsets);
-    cudaFree(d_forward_edges);
-    cudaFree(d_backward_offsets);
-    cudaFree(d_backward_edges);
-    cudaFree(d_colors);
-    cudaFree(d_marks);
-    cudaFree(d_wcc_ids);
-    cudaFree(d_scc_buffer);
-    cudaFree(d_scc_buffer_count);
-    cudaFree(d_changed);
-    cudaFreeHost(h_changed);
-}
-
-void SccSolverCuda::run_method2() {
-    std::cout << "Phase 1: GPU Parallel Operations" << std::endl;
-    par_trim("Initial Trim");
-    par_fwbw(); // This is a placeholder as noted in the method
-    par_trim("Post-FWBW Trim");
-    par_trim2();
-    par_trim("Post-Trim2 Trim");
-    par_wcc();
-
-    std::cout << "Phase 2: CPU Parallel Recursion" << std::endl;
-    std::vector<int> h_colors(num_nodes);
-    std::vector<int> h_marks(num_nodes);
-    CHECK_CUDA_ERROR(cudaMemcpy(h_colors.data(), d_colors, num_nodes * sizeof(int), cudaMemcpyDeviceToHost));
-    CHECK_CUDA_ERROR(cudaMemcpy(h_marks.data(), d_marks, num_nodes * sizeof(int), cudaMemcpyDeviceToHost));
-
-    std::set<int> unique_colors;
-    for(int i = 0; i < num_nodes; ++i) {
-        if(h_marks[i] == 0) unique_colors.insert(h_colors[i]);
-    }
-    std::deque<int> work_queue(unique_colors.begin(), unique_colors.end());
-
-    process_work_queue_on_cpu(work_queue, h_colors, h_marks);
-}
-
-void SccSolverCuda::par_trim(const std::string& phase_name) {
-    int blocks = (num_nodes + 255) / 256;
-    int threads = 256;
-    std::cout << "--- " << phase_name << " ---" << std::endl;
-    do {
-        *h_changed = 0;
-        CHECK_CUDA_ERROR(cudaMemcpy(d_changed, h_changed, sizeof(int), cudaMemcpyHostToDevice));
-        CHECK_CUDA_ERROR(cudaMemset(d_scc_buffer_count, 0, sizeof(int)));
-
-        par_trim_kernel<<<blocks, threads>>>(num_nodes, d_forward_offsets, d_forward_edges, d_backward_offsets, d_backward_edges, d_colors, d_marks, d_changed, d_scc_buffer, d_scc_buffer_count);
-        CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-
-        collect_sccs_from_buffer("Trim");
-        CHECK_CUDA_ERROR(cudaMemcpy(h_changed, d_changed, sizeof(int), cudaMemcpyDeviceToHost));
-
-    } while (*h_changed == 1);
-}
-
-void SccSolverCuda::par_trim2() {
-    std::cout << "--- Par-Trim2 ---" << std::endl;
-    int blocks = (num_nodes + 255) / 256;
-    int threads = 256;
-    CHECK_CUDA_ERROR(cudaMemset(d_scc_buffer_count, 0, sizeof(int)));
-
-    par_trim2_kernel<<<blocks, threads>>>(num_nodes, d_forward_offsets, d_forward_edges, d_backward_offsets, d_backward_edges, d_colors, d_marks, d_scc_buffer, d_scc_buffer_count);
-    CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-
-    collect_sccs_from_buffer("Trim2");
-}
-
-void SccSolverCuda::par_fwbw() {
-    std::cout << "--- Par-FWBW (Placeholder) ---" << std::endl;
-    // A full implementation requires an efficient parallel BFS, which is complex.
-    // This step would find the giant SCC, mark its nodes, and partition the rest of
-    // the graph into FW and BW sets by updating d_colors.
-}
-
-void SccSolverCuda::par_wcc() {
-    std::cout << "--- Par-WCC ---" << std::endl;
-    int blocks = (num_nodes + 255) / 256;
-    int threads = 256;
-
-    wcc_init_kernel<<<blocks, threads>>>(num_nodes, d_wcc_ids);
-    CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-
-    do {
-        *h_changed = 0;
-        CHECK_CUDA_ERROR(cudaMemcpy(d_changed, h_changed, sizeof(int), cudaMemcpyHostToDevice));
-        wcc_propagate_kernel<<<blocks, threads>>>(num_nodes, d_forward_offsets, d_forward_edges, d_backward_offsets, d_backward_edges, d_wcc_ids, d_colors, d_marks, d_changed);
-        CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-        CHECK_CUDA_ERROR(cudaMemcpy(h_changed, d_changed, sizeof(int), cudaMemcpyDeviceToHost));
-    } while (*h_changed == 1);
-
-    for(int i=0; i<2; ++i) {
-       wcc_compress_kernel<<<blocks, threads>>>(num_nodes, d_wcc_ids, d_marks);
-       CHECK_CUDA_ERROR(cudaDeviceSynchronize());
-    }
-}
-
-void SccSolverCuda::process_work_queue_on_cpu(std::deque<int>& work_queue, std::vector<int>& h_colors, std::vector<int>& h_marks) {
-    std::mutex queue_mutex;
-    #pragma omp parallel
-    {
-        while(true) {
-            int task_color = -1;
-            {
-                std::lock_guard<std::mutex> lock(queue_mutex);
-                if (work_queue.empty()) break;
-                task_color = work_queue.front();
-                work_queue.pop_front();
+            for (int i = start_edge; i < end_edge; ++i) {
+                int neighbor = d_transposed_adj_list_edges[i];
+                if (d_node_status[neighbor] == 0) { // Only consider active neighbors
+                    // If neighbor is unvisited (0), try to mark it as visited (1) and add to next queue
+                    if (atomicCAS(&d_visited[neighbor], 0, 1) == 0) {
+                        d_next_queue[neighbor] = true; // Add to next level's queue
+                        atomicAdd(d_active_count, 1); // Increment active count for next iteration
+                    }
+                }
             }
-            if (task_color != -1) {
-                recur_fwbw_on_cpu(task_color, h_colors, h_marks, work_queue, queue_mutex);
-            }
+            d_queue[node_idx] = false; // Deactivate from current queue
         }
     }
 }
 
-void SccSolverCuda::recur_fwbw_on_cpu(int color_c, std::vector<int>& h_colors, std::vector<int>& h_marks, std::deque<int>& work_queue, std::mutex& queue_mutex) {
-    int pivot = -1;
-    for (int i = 0; i < num_nodes; ++i) {
-        if (h_marks[i] == 0 && h_colors[i] == color_c) {
-            pivot = i;
-            break;
-        }
-    }
-    if (pivot == -1) return;
-
-    std::vector<int> fw_reach, bw_reach;
-    std::vector<bool> visited_fw(num_nodes, false);
-    dfs_reach_on_cpu(pivot, true, fw_reach, color_c, h_colors, h_marks, visited_fw);
-    std::vector<bool> visited_bw(num_nodes, false);
-    dfs_reach_on_cpu(pivot, false, bw_reach, color_c, h_colors, h_marks, visited_bw);
-
-    std::set<int> fw_set(fw_reach.begin(), fw_reach.end());
-    std::vector<int> scc_nodes;
-    for (int node : bw_reach) {
-        if (fw_set.count(node)) {
-            scc_nodes.push_back(node);
-        }
-    }
-
-    if (!scc_nodes.empty()) {
-        int c_fw = next_color++;
-        int c_bw = next_color++;
-
-        #pragma omp critical
-        {
-            final_sccs.push_back(scc_nodes);
-        }
-
-        for (int node : scc_nodes) h_marks[node] = 1;
-
-        std::vector<int> fw_only, bw_only;
-        for (int node : fw_reach) if (h_marks[node] == 0) {
-            h_colors[node] = c_fw;
-            fw_only.push_back(node);
-        }
-        for (int node : bw_reach) if (h_marks[node] == 0 && fw_set.find(node) == fw_set.end()) {
-            h_colors[node] = c_bw;
-            bw_only.push_back(node);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(queue_mutex);
-            if(!fw_only.empty()) work_queue.push_back(c_fw);
-            if(!bw_only.empty()) work_queue.push_back(c_bw);
-        }
-    }
-}
-
-void SccSolverCuda::dfs_reach_on_cpu(int u, bool forward, std::vector<int>& reach, int target_color, const std::vector<int>& h_colors, const std::vector<int>& h_marks, std::vector<bool>& visited) {
-    visited[u] = true;
-    reach.push_back(u);
-    const auto& offsets = forward ? host_graph.forward_offsets : host_graph.backward_offsets;
-    const auto& edges = forward ? host_graph.forward_edges : host_graph.backward_edges;
-    for (int i = offsets[u]; i < offsets[u+1]; ++i) {
-        int v = edges[i];
-        if (h_marks[v] == 0 && h_colors[v] == target_color && !visited[v]) {
-            dfs_reach_on_cpu(v, forward, reach, target_color, h_colors, h_marks, visited);
-        }
-    }
-}
-
-void SccSolverCuda::collect_sccs_from_buffer(const std::string& type) {
-    int count = 0;
-    CHECK_CUDA_ERROR(cudaMemcpy(&count, d_scc_buffer_count, sizeof(int), cudaMemcpyDeviceToHost));
-
-    if (count > 0) {
-        std::vector<int> h_scc_nodes(count);
-        CHECK_CUDA_ERROR(cudaMemcpy(h_scc_nodes.data(), d_scc_buffer, count * sizeof(int), cudaMemcpyDeviceToHost));
-
-        if (type == "Trim") {
-            for(int node : h_scc_nodes) {
-                final_sccs.push_back({node});
-            }
-        } else if (type == "Trim2") {
-            for(size_t i = 0; i < h_scc_nodes.size(); i+=2) {
-                final_sccs.push_back({h_scc_nodes[i], h_scc_nodes[i+1]});
-            }
-        }
-    }
-}
-
-std::vector<std::vector<int>> SccSolverCuda::get_sccs() {
-    return final_sccs;
-}
-
-// ===================================================================
-// MAIN FUNCTION & GRAPH LOADING
-// ===================================================================
-
-Graph load_graph_from_file(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
-        exit(1);
-    }
-    std::vector<std::pair<int, int>> raw_edge_list;
-    std::unordered_map<int, int> node_map;
-    int next_node_id = 0;
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        std::stringstream ss(line);
-        int u_orig, v_orig;
-        if (ss >> u_orig >> v_orig) {
-            if (node_map.find(u_orig) == node_map.end()) node_map[u_orig] = next_node_id++;
-            if (node_map.find(v_orig) == node_map.end()) node_map[v_orig] = next_node_id++;
-            raw_edge_list.push_back({node_map[u_orig], node_map[v_orig]});
-        }
-    }
-    file.close();
-
-    Graph g;
-    g.num_nodes = node_map.size();
-    g.num_edges = raw_edge_list.size();
-    g.forward_offsets.assign(g.num_nodes + 1, 0);
-    g.backward_offsets.assign(g.num_nodes + 1, 0);
-
-    for (const auto& edge : raw_edge_list) {
-        g.forward_offsets[edge.first + 1]++;
-        g.backward_offsets[edge.second + 1]++;
-    }
-    for (int i = 1; i <= g.num_nodes; ++i) {
-        g.forward_offsets[i] += g.forward_offsets[i - 1];
-        g.backward_offsets[i] += g.backward_offsets[i - 1];
-    }
-
-    g.forward_edges.resize(g.num_edges);
-    g.backward_edges.resize(g.num_edges);
-    std::vector<int> fwd_counters = g.forward_offsets;
-    std::vector<int> bwd_counters = g.backward_offsets;
-    for (const auto& edge : raw_edge_list) {
-        g.forward_edges[fwd_counters[edge.first]++] = edge.second;
-        g.backward_edges[bwd_counters[edge.second]++] = edge.first;
-    }
-    std::cout << "Graph loaded: " << g.num_nodes << " nodes, " << g.num_edges << " edges." << std::endl;
-    return g;
-}
+// --- Host Code ---
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
+    if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <graph_file.txt>" << std::endl;
         return 1;
     }
 
-    Graph g = load_graph_from_file(argv[1]);
-
-    SccSolverCuda solver(g);
-    solver.run_method2();
-
-    auto final_sccs = solver.get_sccs();
-    std::cout << "\nFound " << final_sccs.size() << " Strongly Connected Components." << std::endl;
-    // Uncomment to print all SCCs
-    /*
-    for (auto& scc : final_sccs) {
-        std::sort(scc.begin(), scc.end());
-        std::cout << "{ ";
-        for (int node : scc) {
-            std::cout << node << " ";
-        }
-        std::cout << "}" << std::endl;
+    std::ifstream inputFile(argv[1]);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening the file!" << std::endl;
+        return 1;
     }
-    */
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    int V, E;
+    inputFile >> V >> E;
+
+    // Host-side adjacency list representation for building CSR
+    std::vector<std::vector<int>> h_adj(V);
+    std::vector<std::vector<int>> h_adj_transposed(V); // For building transpose
+
+    int u, v_node;
+    for (int i = 0; i < E; ++i) {
+        inputFile >> u >> v_node;
+        h_adj[u].push_back(v_node);
+        h_adj_transposed[v_node].push_back(u); // Building transpose directly
+    }
+    inputFile.close();
+
+    // Convert adjacency list to CSR (Compressed Sparse Row) format for GPU
+    // Original graph
+    std::vector<int> h_adj_list_starts(V + 1, 0);
+    std::vector<int> h_adj_list_edges(E);
+    int current_edge_idx = 0;
+    for (int i = 0; i < V; ++i) {
+        h_adj_list_starts[i] = current_edge_idx;
+        for (int neighbor : h_adj[i]) {
+            h_adj_list_edges[current_edge_idx++] = neighbor;
+        }
+    }
+    h_adj_list_starts[V] = current_edge_idx;
+
+    // Transposed graph
+    std::vector<int> h_transposed_adj_list_starts(V + 1, 0);
+    std::vector<int> h_transposed_adj_list_edges(E);
+    current_edge_idx = 0;
+    for (int i = 0; i < V; ++i) {
+        h_transposed_adj_list_starts[i] = current_edge_idx;
+        for (int neighbor : h_adj_transposed[i]) {
+            h_transposed_adj_list_edges[current_edge_idx++] = neighbor;
+        }
+    }
+    h_transposed_adj_list_starts[V] = current_edge_idx;
+
+    // --- Device Memory Allocation ---
+    int* d_adj_list_starts;
+    int* d_adj_list_edges;
+    int* d_transposed_adj_list_starts;
+    int* d_transposed_adj_list_edges;
+    int* d_out_degree;         // Current out-degree for trimming
+    int* d_in_degree;          // Current in-degree for trimming
+    int* d_node_status;        // 0: active, 1: trimmed, assigned SCC ID
+    int* d_visited;            // For Kosaraju's BFS passes (0: unvisited, 1: visiting, 2: finished/visited)
+    int* d_finishing_order;    // Stores node indices in their finishing order (reverse order for Kosaraju)
+    int* d_current_time;       // Global counter for finishing times
+    int* d_scc_id;             // Stores SCC ID for each node
+    bool* d_queue;             // For BFS-like traversal
+    bool* d_next_queue;        // For BFS-like traversal
+    int* d_active_count;       // For counting active nodes in queue / trimmed nodes
+
+    CUDA_CHECK(cudaMalloc(&d_adj_list_starts, (V + 1) * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_adj_list_edges, E * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_transposed_adj_list_starts, (V + 1) * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_transposed_adj_list_edges, E * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_out_degree, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_in_degree, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_node_status, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_visited, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_finishing_order, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_current_time, sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_scc_id, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_queue, V * sizeof(bool)));
+    CUDA_CHECK(cudaMalloc(&d_next_queue, V * sizeof(bool)));
+    CUDA_CHECK(cudaMalloc(&d_active_count, sizeof(int)));
+
+    // --- Data Transfer (Host to Device) ---
+    CUDA_CHECK(cudaMemcpy(d_adj_list_starts, h_adj_list_starts.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_adj_list_edges, h_adj_list_edges.data(), E * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_transposed_adj_list_starts, h_transposed_adj_list_starts.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_transposed_adj_list_edges, h_transposed_adj_list_edges.data(), E * sizeof(int), cudaMemcpyHostToDevice));
+
+    // --- CUDA Kernel Launches ---
+
+    int blocks = (V + 255) / 256;
+    int threads_per_block = 256;
+
+    // Initializations
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_node_status, 0, V); // All nodes active initially
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_scc_id, -1, V);     // No SCC ID assigned yet
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // Compute initial degrees
+    computeDegreesKernel<<<blocks, threads_per_block>>>(V, d_adj_list_starts, d_adj_list_edges,
+                                                        d_transposed_adj_list_starts, d_transposed_adj_list_edges,
+                                                        d_out_degree, d_in_degree);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    std::cout << "Initial degrees computed." << std::endl;
+
+    // --- Trimming Step ---
+    int total_scc_count = 0;
+    int newly_trimmed_nodes_host = 1; // Start with 1 to enter the loop
+    std::cout << "Starting Trimming Step..." << std::endl;
+    while (newly_trimmed_nodes_host > 0) {
+        CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int))); // Use d_active_count to track newly trimmed nodes
+        newly_trimmed_nodes_host = 0;
+
+        trimGraphKernel<<<blocks, threads_per_block>>>(
+            V, d_adj_list_starts, d_adj_list_edges,
+            d_transposed_adj_list_starts, d_transposed_adj_list_edges,
+            d_out_degree, d_in_degree,
+            d_node_status, d_scc_id,
+            total_scc_count, // Base for new SCC IDs from trimming
+            d_active_count
+        );
+        CUDA_CHECK(cudaDeviceSynchronize());
+
+        CUDA_CHECK(cudaMemcpy(&newly_trimmed_nodes_host, d_active_count, sizeof(int), cudaMemcpyDeviceToHost));
+        total_scc_count += newly_trimmed_nodes_host;
+        std::cout << "Trimmed " << newly_trimmed_nodes_host << " nodes in this iteration. Total trimmed: " << total_scc_count << std::endl;
+    }
+    std::cout << "Trimming Step Complete. Remaining active nodes to process: " << V - total_scc_count << std::endl;
+
+    // --- Kosaraju's Algorithm on Remaining Graph ---
+    // Initialize d_visited to 0, d_current_time to 0 for Kosaraju's part
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_visited, 0, V);
+    CUDA_CHECK(cudaMemset(d_current_time, 0, sizeof(int)));
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // --- First Pass: Approximate Finishing Times on active nodes ---
+    std::cout << "Starting First Pass (Kosaraju) on remaining graph..." << std::endl;
+    for (int start_node = 0; start_node < V; ++start_node) {
+        if (d_node_status[start_node] != 0) continue; // Skip trimmed nodes
+
+        int visited_status;
+        CUDA_CHECK(cudaMemcpy(&visited_status, d_visited + start_node, sizeof(int), cudaMemcpyDeviceToHost));
+        if (visited_status == 0) { // If node not yet visited and is active
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_queue, false, V);
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_next_queue, false, V);
+            CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+            bool true_val = true;
+            CUDA_CHECK(cudaMemcpy(d_queue + start_node, &true_val, sizeof(bool), cudaMemcpyHostToDevice));
+            int initial_active = 1;
+            CUDA_CHECK(cudaMemcpy(d_active_count, &initial_active, sizeof(int), cudaMemcpyHostToDevice));
+
+            int current_active_nodes = 1;
+            while (current_active_nodes > 0) {
+                CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+                firstPassKernel<<<blocks, threads_per_block>>>(
+                    V, d_adj_list_starts, d_adj_list_edges,
+                    d_visited, d_finishing_order, d_current_time,
+                    d_queue, d_next_queue, d_active_count, d_node_status
+                );
+                CUDA_CHECK(cudaDeviceSynchronize());
+
+                bool* temp_queue = d_queue;
+                d_queue = d_next_queue;
+                d_next_queue = temp_queue;
+
+                CUDA_CHECK(cudaMemcpy(&current_active_nodes, d_active_count, sizeof(int), cudaMemcpyDeviceToHost));
+            }
+        }
+    }
+    std::cout << "First Pass Complete." << std::endl;
+
+    // --- Second Pass: Identify SCCs on active nodes ---
+    std::vector<int> h_finishing_order(V);
+    CUDA_CHECK(cudaMemcpy(h_finishing_order.data(), d_finishing_order, V * sizeof(int), cudaMemcpyDeviceToHost));
+
+    // Reinitialize visited array for the second pass
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_visited, 0, V);
+    CUDA_CHECK(cudaDeviceSynchronize());
+    std::cout << "Starting Second Pass (Kosaraju) on remaining graph..." << std::endl;
+
+    for (int i = 0; i < V; ++i) {
+        int node = h_finishing_order[i]; // Get node from ordered list
+        if (d_node_status[node] != 0) continue; // Skip trimmed nodes
+
+        int visited_status;
+        CUDA_CHECK(cudaMemcpy(&visited_status, d_visited + node, sizeof(int), cudaMemcpyDeviceToHost));
+
+        if (visited_status == 0) { // If node not yet visited in this pass and is active
+            total_scc_count++; // Increment overall SCC count for non-trivial SCCs
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_queue, false, V);
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_next_queue, false, V);
+            CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+            bool true_val = true;
+            CUDA_CHECK(cudaMemcpy(d_queue + node, &true_val, sizeof(bool), cudaMemcpyHostToDevice));
+            int initial_active = 1;
+            CUDA_CHECK(cudaMemcpy(d_active_count, &initial_active, sizeof(int), cudaMemcpyHostToDevice));
+
+            int current_active_nodes = 1;
+            while (current_active_nodes > 0) {
+                CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+                secondPassKernel<<<blocks, threads_per_block>>>(
+                    V, d_transposed_adj_list_starts, d_transposed_adj_list_edges,
+                    d_visited, d_scc_id, total_scc_count, // Pass current SCC ID
+                    d_queue, d_next_queue, d_active_count, d_node_status
+                );
+                CUDA_CHECK(cudaDeviceSynchronize());
+
+                bool* temp_queue = d_queue;
+                d_queue = d_next_queue;
+                d_next_queue = temp_queue;
+
+                CUDA_CHECK(cudaMemcpy(&current_active_nodes, d_active_count, sizeof(int), cudaMemcpyDeviceToHost));
+            }
+        }
+    }
+    std::cout << "Second Pass Complete." << std::endl;
+
+    std::cout << "Number of Strongly Connected Components: " << total_scc_count << std::endl;
+
+    // Optionally, print SCCs (copy d_scc_id back to host)
+    std::vector<int> h_scc_id(V);
+    CUDA_CHECK(cudaMemcpy(h_scc_id.data(), d_scc_id, V * sizeof(int), cudaMemcpyDeviceToHost));
+
+    std::cout << "\nNode to SCC ID mapping:" << std::endl;
+    for (int i = 0; i < V; ++i) {
+        std::cout << "Node " << i << ": SCC " << h_scc_id[i] << std::endl;
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    double time_taken_seconds = std::chrono::duration<double>(end_time - start_time).count();
+
+    // --- Performance Metrics (Approximation) ---
+    double bytes_accessed = (2.0 * (V + 1) * sizeof(int)) + (2.0 * E * sizeof(int)) +
+                            (V * sizeof(int)) + (V * sizeof(int)) + (V * sizeof(int)) +
+                            (V * sizeof(int)) + (V * sizeof(int)) + (V * sizeof(int)) + // 3 new for degrees/status
+                            (2.0 * V * sizeof(bool)) + (2 * sizeof(int));
+
+    double gb_accessed = bytes_accessed / (1024.0 * 1024.0 * 1024.0);
+    double throughput_gbps = gb_accessed / time_taken_seconds;
+
+    std::cout << "\nTotal Execution Time: " << time_taken_seconds * 1000 << " ms" << std::endl;
+    std::cout << "Estimated Memory Access: " << gb_accessed << " GB" << std::endl;
+    std::cout << "Estimated Memory Throughput: " << throughput_gbps << " GB/s" << std::endl;
+
+    // --- Cleanup ---
+    CUDA_CHECK(cudaFree(d_adj_list_starts));
+    CUDA_CHECK(cudaFree(d_adj_list_edges));
+    CUDA_CHECK(cudaFree(d_transposed_adj_list_starts));
+    CUDA_CHECK(cudaFree(d_transposed_adj_list_edges));
+    CUDA_CHECK(cudaFree(d_out_degree));
+    CUDA_CHECK(cudaFree(d_in_degree));
+    CUDA_CHECK(cudaFree(d_node_status));
+    CUDA_CHECK(cudaFree(d_visited));
+    CUDA_CHECK(cudaFree(d_finishing_order));
+    CUDA_CHECK(cudaFree(d_current_time));
+    CUDA_CHECK(cudaFree(d_scc_id));
+    CUDA_CHECK(cudaFree(d_queue));
+    CUDA_CHECK(cudaFree(d_next_queue));
+    CUDA_CHECK(cudaFree(d_active_count));
+
     return 0;
 }

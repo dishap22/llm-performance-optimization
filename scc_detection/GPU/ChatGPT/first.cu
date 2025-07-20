@@ -1,173 +1,248 @@
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
+// scc_cuda_kosaraju.cu
+#include <bits/stdc++.h>
 #include <cuda_runtime.h>
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <set>
-#include <unordered_map>
+using namespace std;
 
-#define THREADS_PER_BLOCK 512
+//---------------------------------------------
+// CUDA error check
+#define CUDA_CHECK(call)                                                        \
+  do {                                                                          \
+    cudaError_t err = call;                                                     \
+    if (err != cudaSuccess) {                                                   \
+      fprintf(stderr, "CUDA error %s at %s:%d\n",                               \
+              cudaGetErrorString(err), __FILE__, __LINE__);                    \
+      exit(EXIT_FAILURE);                                                       \
+    }                                                                           \
+  } while (0)
 
+//---------------------------------------------
+// Host CSR graph
 struct Graph {
-    int num_nodes;
-    int num_edges;
-    std::vector<int> row_offsets; // size num_nodes+1
-    std::vector<int> col_indices; // size num_edges
+  int N, E;
+  vector<int> fwd_off, fwd_adj;
+  vector<int> rev_off, rev_adj;
+  unordered_map<int,int> reverse_map;  // map from 0..N-1 back to original IDs
+
+  Graph(const string &fname) { load(fname); }
+
+private:
+  void load(const string &fname) {
+    ifstream in(fname);
+    if (!in.is_open()) { cerr<<"Error opening "<<fname<<"\n"; exit(1); }
+
+    vector<pair<int,int>> edges;
+    unordered_map<int,int> mp;
+    mp.reserve(1<<20);
+    int nextId=0;
+    string line;
+    while (getline(in,line)) {
+      if (line.empty()||line[0]=='#') continue;
+      istringstream ss(line);
+      int u,v;
+      if (!(ss>>u>>v)) continue;
+      if (!mp.count(u)) { mp[u]=nextId; reverse_map[nextId]=u; nextId++; }
+      if (!mp.count(v)) { mp[v]=nextId; reverse_map[nextId]=v; nextId++; }
+      edges.emplace_back(mp[u], mp[v]);
+    }
+
+    N = nextId;
+    E = edges.size();
+    vector<vector<int>> fw(N), rv(N);
+    for (auto &e: edges) {
+      fw[e.first].push_back(e.second);
+      rv[e.second].push_back(e.first);
+    }
+
+    fwd_off.resize(N+1); rev_off.resize(N+1);
+    fwd_adj.resize(E);   rev_adj.resize(E);
+    fwd_off[0]=0; rev_off[0]=0;
+    for (int i=0;i<N;i++){
+      fwd_off[i+1] = fwd_off[i] + fw[i].size();
+      rev_off[i+1] = rev_off[i] + rv[i].size();
+    }
+    vector<int> pf(N,0), pr(N,0);
+    for (int i=0;i<N;i++){
+      for (int v: fw[i]) fwd_adj[fwd_off[i] + pf[i]++] = v;
+      for (int v: rv[i]) rev_adj[rev_off[i] + pr[i]++] = v;
+    }
+  }
 };
 
-__global__ void trim_kernel(int* row_offsets, int* col_indices, int* in_degrees, int* out_degrees, int* colors, int* marks, int num_nodes, bool* changed) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= num_nodes || marks[tid]) return;
+//---------------------------------------------
+// Device buffers
+int  *d_fwd_off, *d_fwd_adj,
+     *d_rev_off, *d_rev_adj,
+     *d_frontier_curr, *d_frontier_next,
+     *d_frontier_size_curr, *d_frontier_size_next,
+     *d_visited_fw, *d_visited_bw,
+     *d_color;
+bool *d_mark;
 
-    int out_deg = 0;
-    int start = row_offsets[tid];
-    int end = row_offsets[tid + 1];
-
-    for (int i = start; i < end; ++i) {
-        int dst = col_indices[i];
-        if (!marks[dst]) out_deg++;
+//---------------------------------------------
+// Kernel: BFS expand one frontier
+__global__ void bfs_expand(
+    const int *off, const int *adj,
+    int frontier_size,
+    const int *frontier_curr,
+    int *frontier_next,
+    int *next_size,
+    int *visited)
+{
+  int idx = blockIdx.x*blockDim.x + threadIdx.x;
+  if (idx >= frontier_size) return;
+  int u = frontier_curr[idx];
+  for (int e = off[u]; e < off[u+1]; ++e) {
+    int v = adj[e];
+    if (atomicExch(&visited[v], 1) == 0) {
+      int pos = atomicAdd(next_size, 1);
+      frontier_next[pos] = v;
     }
-
-    if (in_degrees[tid] == 0 || out_deg == 0) {
-        marks[tid] = 1;
-        colors[tid] = -1;
-        *changed = true;
-    }
+  }
 }
 
-__global__ void compute_degrees(int* row_offsets, int* col_indices, int* in_deg, int* out_deg, int* marks, int num_nodes) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= num_nodes || marks[tid]) return;
-
-    out_deg[tid] = row_offsets[tid + 1] - row_offsets[tid];
-
-    for (int i = row_offsets[tid]; i < row_offsets[tid + 1]; ++i) {
-        int dst = col_indices[i];
-        if (!marks[dst]) atomicAdd(&in_deg[dst], 1);
-    }
+//---------------------------------------------
+// Kernel: collect intersection = an SCC
+__global__ void collect_scc(
+    int N,
+    const int *visited_fw,
+    const int *visited_bw,
+    int *color,
+    bool *mark,
+    int curr_color)
+{
+  int u = blockIdx.x*blockDim.x + threadIdx.x;
+  if (u >= N) return;
+  if (!mark[u] && visited_fw[u] && visited_bw[u]) {
+    mark[u]  = true;
+    color[u] = curr_color;
+  }
 }
 
-__global__ void bfs_forward(int* row_offsets, int* col_indices, int* visited, int* colors, int num_nodes, int start) {
-    __shared__ int frontier[THREADS_PER_BLOCK];
-    __shared__ int next_frontier[THREADS_PER_BLOCK];
-    int tid = threadIdx.x;
+//---------------------------------------------
+// Host: run SCC via forward-backward per pivot
+int run_scc(const Graph &G) {
+  int N = G.N;
+  // copy CSR to device
+  CUDA_CHECK(cudaMalloc(&d_fwd_off, (N+1)*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_fwd_adj,  G.E *sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_rev_off, (N+1)*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_rev_adj,  G.E *sizeof(int)));
+  CUDA_CHECK(cudaMemcpy(d_fwd_off, G.fwd_off.data(), (N+1)*sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_fwd_adj, G.fwd_adj.data(),  G.E *sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_rev_off, G.rev_off.data(), (N+1)*sizeof(int), cudaMemcpyHostToDevice));
+  CUDA_CHECK(cudaMemcpy(d_rev_adj, G.rev_adj.data(),  G.E *sizeof(int), cudaMemcpyHostToDevice));
 
-    if (tid == 0) {
-        visited[start] = 1;
-        colors[start] = 2;
+  // alloc other buffers
+  CUDA_CHECK(cudaMalloc(&d_frontier_curr,   N*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_frontier_next,   N*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_frontier_size_curr, sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_frontier_size_next, sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_visited_fw,  N*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_visited_bw,  N*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_color,       N*sizeof(int)));
+  CUDA_CHECK(cudaMalloc(&d_mark,        N*sizeof(bool)));
+
+  CUDA_CHECK(cudaMemset(d_mark,  0, N*sizeof(bool)));
+  CUDA_CHECK(cudaMemset(d_color, 0, N*sizeof(int)));
+
+  int h_color = 1;
+  vector<int> h_fs(1), h_zero(1);
+  vector<char> h_mark(N);
+
+  dim3 block(256), grid((N+255)/256);
+
+  while (true) {
+    // find pivot
+    CUDA_CHECK(cudaMemcpy(h_mark.data(), d_mark, N*sizeof(bool), cudaMemcpyDeviceToHost));
+    int pivot=-1;
+    for (int i=0;i<N;i++) if (!h_mark[i]) { pivot=i; break; }
+    if (pivot<0) break;
+
+    // --- forward BFS ---
+    CUDA_CHECK(cudaMemset(d_visited_fw, 0, N*sizeof(int)));
+    h_fs[0]=1;
+    CUDA_CHECK(cudaMemcpy(d_frontier_size_curr, h_fs.data(), sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_frontier_curr, &pivot, sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemset(d_visited_fw + pivot, 1, sizeof(int)));
+
+    while (true) {
+      h_zero[0]=0;
+      CUDA_CHECK(cudaMemcpy(d_frontier_size_next, h_zero.data(), sizeof(int), cudaMemcpyHostToDevice));
+      CUDA_CHECK(cudaMemcpy(h_fs.data(), d_frontier_size_curr, sizeof(int), cudaMemcpyDeviceToHost));
+      int fs = h_fs[0];
+      if (fs==0) break;
+      int gsz=(fs+255)/256;
+      bfs_expand<<<gsz,256>>>(d_fwd_off, d_fwd_adj, fs,
+                              d_frontier_curr,
+                              d_frontier_next, d_frontier_size_next,
+                              d_visited_fw);
+      CUDA_CHECK(cudaDeviceSynchronize());
+      CUDA_CHECK(cudaMemcpy(d_frontier_size_curr, d_frontier_size_next, sizeof(int), cudaMemcpyDeviceToDevice));
+      swap(d_frontier_curr, d_frontier_next);
     }
-    __syncthreads();
 
-    bool done = false;
-    while (!done) {
-        done = true;
-        __syncthreads();
-        if (tid < num_nodes && visited[tid] == 1) {
-            visited[tid] = 2;
-            int start_edge = row_offsets[tid];
-            int end_edge = row_offsets[tid + 1];
+    // --- backward BFS ---
+    CUDA_CHECK(cudaMemset(d_visited_bw, 0, N*sizeof(int)));
+    h_fs[0]=1;
+    CUDA_CHECK(cudaMemcpy(d_frontier_size_curr, h_fs.data(), sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_frontier_curr, &pivot, sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemset(d_visited_bw + pivot, 1, sizeof(int)));
 
-            for (int i = start_edge; i < end_edge; ++i) {
-                int dst = col_indices[i];
-                if (visited[dst] == 0) {
-                    visited[dst] = 1;
-                    colors[dst] = 2;
-                    done = false;
-                }
-            }
-        }
-        __syncthreads();
+    while (true) {
+      h_zero[0]=0;
+      CUDA_CHECK(cudaMemcpy(d_frontier_size_next, h_zero.data(), sizeof(int), cudaMemcpyHostToDevice));
+      CUDA_CHECK(cudaMemcpy(h_fs.data(), d_frontier_size_curr, sizeof(int), cudaMemcpyDeviceToHost));
+      int fs = h_fs[0];
+      if (fs==0) break;
+      int gsz=(fs+255)/256;
+      bfs_expand<<<gsz,256>>>(d_rev_off, d_rev_adj, fs,
+                              d_frontier_curr,
+                              d_frontier_next, d_frontier_size_next,
+                              d_visited_bw);
+      CUDA_CHECK(cudaDeviceSynchronize());
+      CUDA_CHECK(cudaMemcpy(d_frontier_size_curr, d_frontier_size_next, sizeof(int), cudaMemcpyDeviceToDevice));
+      swap(d_frontier_curr, d_frontier_next);
     }
+
+    // collect & print this SCC
+    collect_scc<<<grid,block>>>(N,
+                                d_visited_fw,
+                                d_visited_bw,
+                                d_color,
+                                d_mark,
+                                h_color);
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // copy back colors for printing
+    vector<int> h_col(N);
+    CUDA_CHECK(cudaMemcpy(h_col.data(), d_color, N*sizeof(int), cudaMemcpyDeviceToHost));
+    // cout<<"SCC "<<h_color<<": ";
+    // for (int i=0;i<N;i++){
+    //   if (h_col[i]==h_color) {
+    //     cout<< G.reverse_map.at(i) <<" ";
+    //   }
+    // }
+    // cout<<"\n";
+
+    h_color++;
+  }
+
+  return h_color - 1;
 }
 
-void SCC_Detection_Method2(Graph& G) {
-    int N = G.num_nodes;
-    int M = G.num_edges;
+//---------------------------------------------
+int main(int argc, char** argv) {
+  if (argc!=2) { cerr<<"Usage: "<<argv[0]<<" graph.txt\n"; return 1; }
 
-    // Host data
-    thrust::host_vector<int> h_colors(N, 0);
-    thrust::host_vector<int> h_marks(N, 0);
-    thrust::host_vector<int> h_in_deg(N, 0);
-    thrust::host_vector<int> h_out_deg(N, 0);
+  Graph G(argv[1]);
 
-    // Device data
-    thrust::device_vector<int> d_row_offsets = G.row_offsets;
-    thrust::device_vector<int> d_col_indices = G.col_indices;
-    thrust::device_vector<int> d_colors = h_colors;
-    thrust::device_vector<int> d_marks = h_marks;
-    thrust::device_vector<int> d_in_deg(N, 0);
-    thrust::device_vector<int> d_out_deg(N, 0);
+  // everything else is in run_scc
+  auto t0 = chrono::high_resolution_clock::now();
+  int total = run_scc(G);
+  auto t1 = chrono::high_resolution_clock::now();
 
-    int* d_row_offsets_ptr = thrust::raw_pointer_cast(d_row_offsets.data());
-    int* d_col_indices_ptr = thrust::raw_pointer_cast(d_col_indices.data());
-    int* d_colors_ptr = thrust::raw_pointer_cast(d_colors.data());
-    int* d_marks_ptr = thrust::raw_pointer_cast(d_marks.data());
-    int* d_in_deg_ptr = thrust::raw_pointer_cast(d_in_deg.data());
-    int* d_out_deg_ptr = thrust::raw_pointer_cast(d_out_deg.data());
-
-    bool h_changed = true;
-    bool* d_changed;
-    cudaMalloc(&d_changed, sizeof(bool));
-
-    // -------- Phase 1: Parallel Trimming (Trim1)
-    while (h_changed) {
-        cudaMemset(d_in_deg_ptr, 0, sizeof(int) * N);
-        compute_degrees<<<(N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(
-            d_row_offsets_ptr, d_col_indices_ptr, d_in_deg_ptr, d_out_deg_ptr, d_marks_ptr, N
-        );
-        cudaDeviceSynchronize();
-
-        h_changed = false;
-        cudaMemcpy(d_changed, &h_changed, sizeof(bool), cudaMemcpyHostToDevice);
-
-        trim_kernel<<<(N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(
-            d_row_offsets_ptr, d_col_indices_ptr, d_in_deg_ptr, d_out_deg_ptr, d_colors_ptr, d_marks_ptr, N, d_changed
-        );
-        cudaMemcpy(&h_changed, d_changed, sizeof(bool), cudaMemcpyDeviceToHost);
-    }
-
-    // -------- Phase 2: Forward Reachability (FWBW)
-    int pivot = 0; // You can use random or better selection heuristics
-    thrust::device_vector<int> d_visited(N, 0);
-    bfs_forward<<<1, THREADS_PER_BLOCK>>>(
-        d_row_offsets_ptr, d_col_indices_ptr, thrust::raw_pointer_cast(d_visited.data()), d_colors_ptr, N, pivot
-    );
-    cudaDeviceSynchronize();
-
-    // NOTE: Skipping Trim2 and WCC steps for simplicity in this initial implementation
-    // You can expand this by applying pattern matching and BFS for WCCs
-
-    // Copy result back to host
-    thrust::copy(d_colors.begin(), d_colors.end(), h_colors.begin());
-
-    // -------- Output SCCs
-    std::unordered_map<int, std::vector<int>> scc_map;
-    for (int i = 0; i < N; ++i) {
-        if (h_colors[i] >= 0) {
-            scc_map[h_colors[i]].push_back(i);
-        }
-    }
-
-    std::cout << "Number of SCCs: " << scc_map.size() << "\n";
-    for (const auto& [color, nodes] : scc_map) {
-        std::cout << "SCC: ";
-        for (int node : nodes)
-            std::cout << node << " ";
-        std::cout << "\n";
-    }
-
-    cudaFree(d_changed);
-}
-
-int main() {
-    // Sample graph: 0->1->2->0 and 3->4
-    Graph G;
-    G.num_nodes = 5;
-    G.num_edges = 6;
-    G.row_offsets = {0, 1, 2, 3, 4, 6};
-    G.col_indices = {1, 2, 0, 4, 3, 3};
-
-    SCC_Detection_Method2(G);
-    return 0;
+  cout<<"\nTotal Strongly Connected Components: "<<total<<"\n";
+  double ms = chrono::duration<double, milli>(t1 - t0).count();
+  cout<<"Total Execution Time: "<<ms<<" ms\n";
+  return 0;
 }

@@ -1,197 +1,207 @@
-// Final SCC Method2 Implementation with Trim, Trim2, and Parallel FW-BW Recursion
-#include <bits/stdc++.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <stack>
+#include <unordered_map>
+#include <unordered_set>
+#include <queue>
+#include <algorithm>
 #include <omp.h>
-using namespace std;
+#include <chrono>
+#include <atomic>
+std::atomic<long long> edge_traversals(0);
 
-struct Graph {
-    int num_nodes;
-    int num_edges;
-    vector<int> forward_offsets;
-    vector<int> forward_edges;
-    vector<int> backward_offsets;
-    vector<int> backward_edges;
+class Graph {
+public:
+    Graph(const std::string& filename) {
+        load_from_file(filename);
+    }
+
+    void findSCCs() {
+        // Phase 1: Remove trivial SCCs (no in or no out)
+        std::vector<bool> removed(node_count, false);
+        std::vector<std::vector<int>> trivial_sccs;
+
+        std::vector<int> indegree(node_count, 0), outdegree(node_count, 0);
+        for (int u = 0; u < node_count; ++u) {
+            for (int v : adj[u]) {
+                outdegree[u]++;
+                indegree[v]++;
+            }
+        }
+
+        std::queue<int> q;
+        for (int i = 0; i < node_count; ++i) {
+            if (indegree[i] == 0 || outdegree[i] == 0) {
+                q.push(i);
+                removed[i] = true;
+                trivial_sccs.push_back({i});
+            }
+        }
+
+        // Remove chains of trivial SCCs
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : adj[u]) {
+                if (!removed[v]) {
+                    indegree[v]--;
+                    if (indegree[v] == 0) {
+                        q.push(v);
+                        removed[v] = true;
+                        trivial_sccs.push_back({v});
+                    }
+                }
+            }
+            for (int v : rev_adj[u]) {
+                if (!removed[v]) {
+                    outdegree[v]--;
+                    if (outdegree[v] == 0) {
+                        q.push(v);
+                        removed[v] = true;
+                        trivial_sccs.push_back({v});
+                    }
+                }
+            }
+        }
+
+        // Phase 2: Kosaraju’s on remaining nodes
+        std::vector<bool> visited(node_count, false);
+        std::stack<int> finish_stack;
+
+        for (int i = 0; i < node_count; ++i) {
+            edge_traversals++;
+            if (!removed[i] && !visited[i]) {
+                dfs1(i, visited, finish_stack);
+            }
+        }
+
+        std::vector<std::vector<int>> sccs;
+        std::fill(visited.begin(), visited.end(), false);
+
+        while (!finish_stack.empty()) {
+            int node = finish_stack.top(); finish_stack.pop();
+            edge_traversals++;  
+            if (!removed[node] && !visited[node]) {
+                std::vector<int> component;
+                dfs2(node, visited, component);
+                sccs.push_back(component);
+            }
+        }
+
+        // Output all SCCs
+        int count = 0;
+        for (auto& comp : trivial_sccs) {
+            std::cout << "SCC " << ++count << ": ";
+            for (int node : comp)
+                std::cout << reverse_node_map[node] << " ";
+            std::cout << "\n";
+        }
+
+        for (auto& comp : sccs) {
+            std::cout << "SCC " << ++count << ": ";
+            for (int node : comp)
+                std::cout << reverse_node_map[node] << " ";
+            std::cout << "\n";
+        }
+
+        std::cout << "\nTotal Strongly Connected Components: " << count << "\n";
+    }
+    int getNodeCount() const { return node_count; }
+    int getEdgeCount() const {
+        int total = 0;
+        for (const auto& neighbors : adj)
+            total += neighbors.size();
+        return total;
+    }
+
+private:
+    std::unordered_map<int, int> node_map;
+    std::unordered_map<int, int> reverse_node_map;
+    int node_count = 0;
+
+    std::vector<std::vector<int>> adj;       // forward
+    std::vector<std::vector<int>> rev_adj;   // backward
+
+    void dfs1(int u, std::vector<bool>& visited, std::stack<int>& finish_stack) {
+        visited[u] = true;
+        for (int v : adj[u]) {
+            edge_traversals++;
+            if (!visited[v]) dfs1(v, visited, finish_stack);
+        }
+        finish_stack.push(u);
+    }
+
+    void dfs2(int u, std::vector<bool>& visited, std::vector<int>& component) {
+        visited[u] = true;
+        component.push_back(u);
+        for (int v : rev_adj[u]) {
+            edge_traversals++;
+            if (!visited[v]) dfs2(v, visited, component);
+        }
+    }
+
+    void load_from_file(const std::string& filename) {
+        std::ifstream infile(filename);
+        if (!infile.is_open()) {
+            std::cerr << "Error: Could not open file " << filename << "\n";
+            exit(1);
+        }
+
+        std::string line;
+        std::vector<std::pair<int, int>> edges;
+        while (std::getline(infile, line)) {
+            if (line.empty() || line[0] == '#') continue;
+            std::stringstream ss(line);
+            int u, v;
+            if (ss >> u >> v) {
+                edges.emplace_back(u, v);
+                if (node_map.find(u) == node_map.end()) {
+                    node_map[u] = node_count;
+                    reverse_node_map[node_count++] = u;
+                }
+                if (node_map.find(v) == node_map.end()) {
+                    node_map[v] = node_count;
+                    reverse_node_map[node_count++] = v;
+                }
+            }
+        }
+
+        adj.resize(node_count);
+        rev_adj.resize(node_count);
+        for (auto& [u, v] : edges) {
+            int uid = node_map[u];
+            int vid = node_map[v];
+            adj[uid].push_back(vid);
+            rev_adj[vid].push_back(uid);
+        }
+    }
 };
 
-Graph load_graph_from_file(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
-        exit(1);
-    }
+int main() {
+    std::string filename;
+    std::cout << "Enter input file path: ";
+    std::cin >> filename;
 
-    std::vector<std::pair<int, int>> raw_edge_list;
-    std::unordered_map<int, int> node_map;
-    int next_node_id = 0;
-    int u_orig, v_orig;
-    std::string line;
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        std::stringstream ss(line);
-        if (ss >> u_orig >> v_orig) {
-            raw_edge_list.push_back({u_orig, v_orig});
-            if (node_map.find(u_orig) == node_map.end())
-                node_map[u_orig] = next_node_id++;
-            if (node_map.find(v_orig) == node_map.end())
-                node_map[v_orig] = next_node_id++;
-        }
-    }
-    file.close();
+    // Start timer
+    auto start_time = std::chrono::high_resolution_clock::now();
 
-    Graph g;
-    g.num_nodes = node_map.size();
-    g.num_edges = raw_edge_list.size();
+    Graph g(filename);
+    g.findSCCs();
 
-    std::vector<std::pair<int, int>> remapped_edge_list;
-    remapped_edge_list.reserve(g.num_edges);
-    for (const auto& edge : raw_edge_list) {
-        remapped_edge_list.push_back({node_map[edge.first], node_map[edge.second]});
-    }
+    // Stop timer
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    double teps = edge_traversals / duration.count();
+    // std::cout << "\nTotal Execution Time: " << duration.count() << " ms" << std::endl;
+    double time_seconds = duration.count() / 1000.0;
+    size_t bytes_accessed = 4L * (2 * g.getEdgeCount() + 6 * g.getNodeCount()); // Approximation
+    double gb_accessed = static_cast<double>(bytes_accessed) / (1024.0 * 1024.0 * 1024.0);
+    double gbps = gb_accessed / time_seconds;
 
-    g.forward_offsets.assign(g.num_nodes + 1, 0);
-    g.forward_edges.resize(g.num_edges);
-    std::vector<int> fwd_degrees(g.num_nodes, 0);
-    for (const auto& edge : remapped_edge_list)
-        fwd_degrees[edge.first]++;
-    for (int i = 1; i <= g.num_nodes; ++i)
-        g.forward_offsets[i] = g.forward_offsets[i - 1] + fwd_degrees[i - 1];
-    auto fwd_counters = g.forward_offsets;
-    for (const auto& edge : remapped_edge_list)
-        g.forward_edges[fwd_counters[edge.first]++] = edge.second;
+    std::cout << "Estimated Memory Accessed: " << gb_accessed << " GB" << std::endl;
+    std::cout << "Estimated Memory Throughput: " << gbps << " GB/s" << std::endl;
 
-    g.backward_offsets.assign(g.num_nodes + 1, 0);
-    g.backward_edges.resize(g.num_edges);
-    std::vector<int> bwd_degrees(g.num_nodes, 0);
-    for (const auto& edge : remapped_edge_list)
-        bwd_degrees[edge.second]++;
-    for (int i = 1; i <= g.num_nodes; ++i)
-        g.backward_offsets[i] = g.backward_offsets[i - 1] + bwd_degrees[i - 1];
-    auto bwd_counters = g.backward_offsets;
-    for (const auto& edge : remapped_edge_list)
-        g.backward_edges[bwd_counters[edge.second]++] = edge.first;
-
-    std::cout << "Graph loaded: " << g.num_nodes << " unique nodes, " << g.num_edges << " edges." << std::endl;
-    return g;
-}
-
-void parallel_bfs_csr(const Graph& g, const vector<bool>& active, int start, vector<bool>& visited, vector<int>& reachable, bool forward) {
-    queue<int> q;
-    visited[start] = true;
-    q.push(start);
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        reachable.push_back(u);
-        const auto& offsets = forward ? g.forward_offsets : g.backward_offsets;
-        const auto& edges = forward ? g.forward_edges : g.backward_edges;
-        for (int i = offsets[u]; i < offsets[u + 1]; ++i) {
-            int v = edges[i];
-            if (active[v] && !visited[v]) {
-                visited[v] = true;
-                q.push(v);
-            }
-        }
-    }
-}
-
-void trim(const Graph& g, vector<bool>& active, vector<vector<int>>& sccs) {
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        #pragma omp parallel for schedule(dynamic)
-        for (int u = 0; u < g.num_nodes; ++u) {
-            if (!active[u]) continue;
-            bool has_out = false, has_in = false;
-            for (int i = g.forward_offsets[u]; i < g.forward_offsets[u + 1]; ++i)
-                if (active[g.forward_edges[i]]) has_out = true;
-            for (int i = g.backward_offsets[u]; i < g.backward_offsets[u + 1]; ++i)
-                if (active[g.backward_edges[i]]) has_in = true;
-            if (!has_in || !has_out) {
-                active[u] = false;
-                #pragma omp critical
-                sccs.push_back({u});
-                changed = true;
-            }
-        }
-    }
-}
-
-void trim2(const Graph& g, vector<bool>& active, vector<vector<int>>& sccs) {
-    #pragma omp parallel for schedule(dynamic)
-    for (int u = 0; u < g.num_nodes; ++u) {
-        if (!active[u]) continue;
-        int out_count = 0, only_out = -1;
-        for (int i = g.forward_offsets[u]; i < g.forward_offsets[u + 1]; ++i) {
-            int v = g.forward_edges[i];
-            if (active[v]) {
-                only_out = v;
-                out_count++;
-                if (out_count > 1) break;
-            }
-        }
-        if (out_count != 1 || !active[only_out]) continue;
-
-        int in_count = 0;
-        for (int i = g.backward_offsets[u]; i < g.backward_offsets[u + 1]; ++i)
-            if (active[g.backward_edges[i]]) in_count++;
-
-        if (in_count == 1) {
-            #pragma omp critical
-            sccs.push_back({u, only_out});
-            active[u] = false;
-            active[only_out] = false;
-        }
-    }
-}
-
-void fw_bw(const Graph& g, vector<bool>& active, int pivot, vector<int>& scc) {
-    vector<bool> fw_visited(g.num_nodes, false), bw_visited(g.num_nodes, false);
-    vector<int> fw, bw;
-    parallel_bfs_csr(g, active, pivot, fw_visited, fw, true);
-    parallel_bfs_csr(g, active, pivot, bw_visited, bw, false);
-
-    unordered_set<int> fw_set(fw.begin(), fw.end());
-    for (int v : bw) {
-        if (fw_set.count(v)) {
-            scc.push_back(v);
-            active[v] = false;
-        }
-    }
-}
-
-void method2(const Graph& g) {
-    vector<bool> active(g.num_nodes, true);
-    vector<vector<int>> sccs;
-
-    trim(g, active, sccs);
-    trim2(g, active, sccs);
-
-    #pragma omp parallel
-    {
-        vector<vector<int>> local_sccs;
-        #pragma omp for schedule(dynamic)
-        for (int i = 0; i < g.num_nodes; ++i) {
-            if (!active[i]) continue;
-            vector<int> scc;
-            fw_bw(g, active, i, scc);
-            if (!scc.empty()) {
-                #pragma omp critical
-                sccs.push_back(scc);
-            }
-        }
-    }
-
-    cout << "SCCs found: " << sccs.size() << endl;
-    // for (auto& scc : sccs) {
-    //     for (int v : scc) cout << v << " ";
-    //     cout << endl;
-    // }
-}
-
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <snap_file.txt>" << std::endl;
-        return 1;
-    }
-    Graph g = load_graph_from_file(argv[1]);
-    method2(g);
     return 0;
 }
+

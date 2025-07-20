@@ -1,227 +1,201 @@
-// scc_method2.cpp
-#include <bits/stdc++.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <stack>
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
+#include <mutex>
 #include <omp.h>
-using namespace std;
+#include <chrono>
 
-struct Graph {
-    int V;
-    vector<int> offset; // offset[i] = start of adjacency list for node i
-    vector<int> edges;  // flattened adjacency lists
-    vector<int> in_deg, out_deg;
-
-    Graph(int V) : V(V), in_deg(V, 0), out_deg(V, 0) {}
-
-    void buildFromEdges(const vector<pair<int, int>>& edgeList) {
-        vector<vector<int>> adj(V);
-        for (auto& [u, v] : edgeList) {
-            adj[u].push_back(v);
-            out_deg[u]++;
-            in_deg[v]++;
-        }
-        offset.resize(V + 1);
-        for (int i = 0; i < V; ++i)
-            offset[i + 1] = offset[i] + adj[i].size();
-        edges.resize(offset[V]);
-        #pragma omp parallel for
-        for (int i = 0; i < V; ++i)
-            copy(adj[i].begin(), adj[i].end(), edges.begin() + offset[i]);
+class Graph {
+public:
+    Graph(const std::string& filename) {
+        load_from_file(filename);
     }
-};
 
-vector<int> color, mark, WCC;
-vector<set<int>> SCCs;
-int color_id = 1;
-omp_lock_t scc_lock;
+    void findSCCs() {
+        int n = node_count;
+        std::vector<bool> visited(n, false);
+        std::stack<int> finish_stack;
+        std::mutex stack_mutex;
 
-void addSCC(const set<int>& scc) {
-    omp_set_lock(&scc_lock);
-    SCCs.push_back(scc);
-    omp_unset_lock(&scc_lock);
-}
-
-void parTrim(Graph& g) {
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        #pragma omp parallel for schedule(dynamic)
-        for (int u = 0; u < g.V; ++u) {
-            if (mark[u]) continue;
-            int in_deg = 0, out_deg = 0;
-            for (int i = 0; i < g.V; ++i) {
-                for (int j = g.offset[i]; j < g.offset[i+1]; ++j) {
-                    if (g.edges[j] == u && !mark[i]) in_deg++;
-                    if (i == u && !mark[g.edges[j]]) out_deg++;
+        // Phase 1: First DFS for finishing times
+        #pragma omp parallel for shared(visited)
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                std::stack<int> local_stack;
+                dfs1(i, visited, local_stack);
+                std::lock_guard<std::mutex> lock(stack_mutex);
+                while (!local_stack.empty()) {
+                    finish_stack.push(local_stack.top());
+                    local_stack.pop();
                 }
             }
-            if (in_deg == 0 || out_deg == 0) {
-                mark[u] = 1;
+        }
+
+        // Phase 2: Transpose the graph
+        std::vector<std::vector<int>> transposed(n);
+        #pragma omp parallel for
+        for (int u = 0; u < n; ++u) {
+            for (int v : adj[u]) {
                 #pragma omp critical
-                SCCs.emplace_back(set<int>{u});
-                changed = true;
+                transposed[v].push_back(u);
             }
         }
-    }
-}
 
-void BFS(const Graph& g, int start, vector<int>& reachable, bool forward) {
-    queue<int> q;
-    vector<int> visited(g.V, 0);
-    q.push(start);
-    visited[start] = 1;
-    reachable.push_back(start);
+        // Phase 3: Second DFS on transposed graph
+        std::vector<bool> visited2(n, false);
+        std::vector<std::vector<int>> sccs;
+        std::mutex scc_mutex;
 
-    while (!q.empty()) {
-        int u = q.front(); q.pop();
-        for (int i = 0; i < g.V; ++i) {
-            if (mark[i]) continue;
-            if (forward) {
-                if (u == i) {
-                    for (int j = g.offset[i]; j < g.offset[i + 1]; ++j) {
-                        int v = g.edges[j];
-                        if (!visited[v]) {
-                            visited[v] = 1;
-                            reachable.push_back(v);
-                            q.push(v);
+        #pragma omp parallel
+        {
+            std::vector<int> local_component;
+            std::stack<int> local_stack;
+
+            while (true) {
+                int node = -1;
+                #pragma omp critical
+                {
+                    while (!finish_stack.empty()) {
+                        int top = finish_stack.top();
+                        finish_stack.pop();
+                        if (!visited2[top]) {
+                            node = top;
+                            break;
                         }
                     }
                 }
+
+                if (node == -1) break;
+
+                dfs2(node, visited2, transposed, local_component, local_stack);
+
+                #pragma omp critical
+                sccs.push_back(local_component);
+                local_component.clear();
+            }
+        }
+
+        // Output
+        int scc_count = 0;
+        for (const auto& comp : sccs) {
+            std::cout << "SCC " << ++scc_count << ": ";
+            for (int node : comp)
+                std::cout << reverse_node_map[node] << " ";
+            std::cout << "\n";
+        }
+        std::cout << "\nTotal Strongly Connected Components: " << scc_count << "\n";
+    }
+    int getNodeCount() const { return node_count; }
+    int getEdgeCount() const {
+        int total = 0;
+        for (const auto& neighbors : adj)
+            total += neighbors.size();
+        return total;
+    }
+
+private:
+    std::unordered_map<int, int> node_map;
+    std::unordered_map<int, int> reverse_node_map;
+    int node_count = 0;
+    std::vector<std::vector<int>> adj;
+
+    void load_from_file(const std::string& filename) {
+        std::ifstream infile(filename);
+        if (!infile.is_open()) {
+            std::cerr << "Error: Could not open file " << filename << "\n";
+            exit(1);
+        }
+
+        std::string line;
+        std::vector<std::pair<int, int>> edges;
+        while (std::getline(infile, line)) {
+            if (line.empty() || line[0] == '#') continue;
+            std::stringstream ss(line);
+            int u, v;
+            if (ss >> u >> v) {
+                edges.emplace_back(u, v);
+                if (node_map.find(u) == node_map.end()) {
+                    node_map[u] = node_count;
+                    reverse_node_map[node_count++] = u;
+                }
+                if (node_map.find(v) == node_map.end()) {
+                    node_map[v] = node_count;
+                    reverse_node_map[node_count++] = v;
+                }
+            }
+        }
+
+        adj.resize(node_count);
+        for (auto& [u, v] : edges) {
+            adj[node_map[u]].push_back(node_map[v]);
+        }
+    }
+
+    void dfs1(int u, std::vector<bool>& visited, std::stack<int>& finish_stack) {
+        std::stack<int> s;
+        s.push(u);
+        while (!s.empty()) {
+            int node = s.top();
+            if (!visited[node]) {
+                visited[node] = true;
+                for (int v : adj[node]) {
+                    if (!visited[v])
+                        s.push(v);
+                }
             } else {
-                for (int j = g.offset[i]; j < g.offset[i + 1]; ++j) {
-                    if (g.edges[j] == u && !visited[i]) {
-                        visited[i] = 1;
-                        reachable.push_back(i);
-                        q.push(i);
-                    }
+                s.pop();
+                finish_stack.push(node);
+            }
+        }
+    }
+
+    void dfs2(int u, std::vector<bool>& visited, std::vector<std::vector<int>>& transposed,
+              std::vector<int>& component, std::stack<int>& s) {
+        s.push(u);
+        while (!s.empty()) {
+            int node = s.top();
+            s.pop();
+            if (!visited[node]) {
+                visited[node] = true;
+                component.push_back(node);
+                for (int v : transposed[node]) {
+                    if (!visited[v])
+                        s.push(v);
                 }
             }
         }
     }
-}
+};
 
-void parFWBW(Graph& g, int seed) {
-    vector<int> FW, BW;
-    BFS(g, seed, FW, true);
-    BFS(g, seed, BW, false);
+int main() {
+    std::string filename;
+    std::cout << "Enter input file path: ";
+    std::cin >> filename;
 
-    unordered_set<int> FWset(FW.begin(), FW.end());
-    set<int> intersection;
-    for (int v : BW) {
-        if (FWset.count(v)) {
-            mark[v] = 1;
-            intersection.insert(v);
-        }
-    }
-    if (!intersection.empty())
-        addSCC(intersection);
-}
+    // Start timer
+    auto start_time = std::chrono::high_resolution_clock::now();
 
-void parTrim2(Graph& g) {
-    #pragma omp parallel for schedule(dynamic)
-    for (int u = 0; u < g.V; ++u) {
-        if (mark[u]) continue;
-        int inNbr = -1, outNbr = -1;
-        for (int i = 0; i < g.V; ++i) {
-            for (int j = g.offset[i]; j < g.offset[i+1]; ++j) {
-                if (g.edges[j] == u && !mark[i]) {
-                    if (inNbr == -1) inNbr = i;
-                    else inNbr = -2;
-                }
-            }
-        }
-        for (int j = g.offset[u]; j < g.offset[u + 1]; ++j) {
-            if (!mark[g.edges[j]]) {
-                if (outNbr == -1) outNbr = g.edges[j];
-                else outNbr = -2;
-            }
-        }
-        if (inNbr >= 0 && inNbr == outNbr) {
-            mark[u] = mark[inNbr] = 1;
-            #pragma omp critical
-            SCCs.emplace_back(set<int>{u, inNbr});
-        }
-    }
-}
+    Graph g(filename);
+    g.findSCCs();
 
-void parWCC(Graph& g) {
-    WCC.resize(g.V);
-    #pragma omp parallel for
-    for (int i = 0; i < g.V; ++i)
-        WCC[i] = i;
+    // Stop timer
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
-    bool changed;
-    do {
-        changed = false;
-        #pragma omp parallel for schedule(dynamic)
-        for (int u = 0; u < g.V; ++u) {
-            if (mark[u]) continue;
-            for (int i = g.offset[u]; i < g.offset[u+1]; ++i) {
-                int v = g.edges[i];
-                if (WCC[v] < WCC[u]) {
-                    WCC[u] = WCC[v];
-                    changed = true;
-                }
-            }
-        }
-    } while (changed);
-}
+    std::cout << "\nTotal Execution Time: " << duration.count() << " ms" << std::endl;
+    double time_seconds = duration.count() / 1000.0;
+    size_t bytes_accessed = 4L * (2 * g.getEdgeCount() + 6 * g.getNodeCount()); // Approximation
+    double gb_accessed = static_cast<double>(bytes_accessed) / (1024.0 * 1024.0 * 1024.0);
+    double gbps = gb_accessed / time_seconds;
 
-void recurFWBW(Graph& g, int seed) {
-    if (mark[seed]) return;
-    parFWBW(g, seed);
-}
+    std::cout << "Estimated Memory Accessed: " << gb_accessed << " GB" << std::endl;
+    std::cout << "Estimated Memory Throughput: " << gbps << " GB/s" << std::endl;
 
-void method2(Graph& g) {
-    color.assign(g.V, 0);
-    mark.assign(g.V, 0);
-    omp_init_lock(&scc_lock);
-
-    parTrim(g);
-    parFWBW(g, 0);
-    parTrim2(g);
-    parTrim(g);
-    parWCC(g);
-
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < g.V; ++i) {
-        if (!mark[i])
-            recurFWBW(g, i);
-    }
-
-    omp_destroy_lock(&scc_lock);
-}
-
-vector<pair<int, int>> readSnapEdges(const string& filename, int& maxNode) {
-    ifstream in(filename);
-    vector<pair<int, int>> edges;
-    string line;
-    maxNode = 0;
-    while (getline(in, line)) {
-        if (line[0] == '#') continue;
-        istringstream ss(line);
-        int u, v;
-        ss >> u >> v;
-        maxNode = max({maxNode, u, v});
-        edges.emplace_back(u, v);
-    }
-    return edges;
-}
-
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        cerr << "Usage: " << argv[0] << "p2p-Gnutella04.txt" << endl;
-        return 1;
-    }
-    int maxNode;
-    auto edgeList = readSnapEdges(argv[1], maxNode);
-    Graph g(maxNode + 1);
-    g.buildFromEdges(edgeList);
-
-    method2(g);
-
-    cout << "SCCs found: " << SCCs.size() << endl;
-    // for (auto& scc : SCCs) {
-    //     for (int v : scc) cout << v << " ";
-    //     cout << endl;
-    // }
     return 0;
 }
+
