@@ -13,7 +13,7 @@ from pathlib import Path
 matrix_sizes = [256, 512, 1024, 2048]  # Larger sizes for better GPU utilization
 densities = [0.01, 0.05, 0.1]     # Different sparsity patterns
 warmup_runs = 3                         # Number of warmup runs
-benchmark_runs = 10                     # Number of benchmark runs
+benchmark_runs = 5                     # Number of benchmark runs
 gpu_dir = os.path.dirname(os.path.abspath(__file__))
 utils_dir = os.path.abspath(os.path.join(gpu_dir, '../utils'))
 exec_name = "spgemm_benchmark"
@@ -26,7 +26,9 @@ IMPLEMENTATIONS = {
     "chatgpt_5.cu": "ChatGPT 1st Implementation",
     "gemini_1.cu": "Gemini 1st Implementation",
     "chatgpt_7.cu": "ChatGPT 2nd Implementation",
-    "gemini_7.cu": "Gemini 2nd Implementation"
+    "gemini_7.cu": "Gemini 2nd Implementation",
+    "chatgpt_10.cu": "ChatGPT 3rd Implementation",
+    "gemini_14.cu": "Gemini 3rd Implementation"
 }
 
 def generate_matrices(n, density=0.1):

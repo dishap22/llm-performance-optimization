@@ -8,7 +8,9 @@ IMPLEMENTATIONS = {
     "chatgpt_5.cu": "ChatGPT 1st Implementation",
     "gemini_1.cu": "Gemini 1st Implementation",
     "chatgpt_7.cu": "ChatGPT 2nd Implementation",
-    "gemini_7.cu": "Gemini 2nd Implementation"
+    "gemini_7.cu": "Gemini 2nd Implementation",
+    "chatgpt_10.cu": "ChatGPT 3rd Implementation",
+    "gemini_14.cu": "Gemini 3rd Implementation"
 }
 
 def plot_gpu_linear(results_df, save_path="benchmark_results_gpu_linear.png"):
