@@ -1,178 +1,353 @@
-// main.cu
-
 #include <iostream>
+#include <fstream>
 #include <vector>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
+#include <stack>
+#include <algorithm>
+#include <chrono> // For measuring execution time
+#include <numeric> // For std::iota
 
-// Represents the graph in Compressed Sparse Row (CSR) format
-struct Graph {
-    int num_nodes;
-    int num_edges;
-    int* d_row_offsets; // Device pointer to row offsets array
-    int* d_col_indices; // Device pointer to column indices array
-};
+// CUDA runtime API
+#include <cuda_runtime.h>
 
-// Data structures for managing state without modifying the graph
-// as described in Section 4.1 of the paper.
-struct SCC_State {
-    int* d_color;   // Color of each node, for partitioning
-    bool* d_mark;    // True if a node's SCC has been found
-    int* d_wcc;     // Head node of a WCC for each node
-};
+// Macro for CUDA error checking
+#define CUDA_CHECK(call)                                                          \
+    do {                                                                          \
+        cudaError_t err = call;                                                   \
+        if (err != cudaSuccess) {                                                 \
+            fprintf(stderr, "CUDA error at %s:%d - %s\n", __FILE__, __LINE__,     \
+                    cudaGetErrorString(err));                                     \
+            exit(EXIT_FAILURE);                                                   \
+        }                                                                         \
+    } while (0)
 
-// =================================================================
-// Function Prototypes for the Kernels and Host-side Functions
-// =================================================================
+// --- Device Kernels ---
 
-// Phase 1 Kernels (Data-Parallel)
-__global__ void par_trim_kernel(Graph g, SCC_State s);
-__global__ void par_trim2_kernel(Graph g, SCC_State s);
-__global__ void par_fwbw_kernel(Graph g, SCC_State s, int pivot);
-__global__ void par_wcc_kernel(Graph g, SCC_State s);
-
-// Host-side functions to manage the algorithm flow
-void par_trim_iterative(Graph g, SCC_State s, std::vector<std::vector<int>>& sccs);
-void par_trim2(Graph g, SCC_State s, std::vector<std::vector<int>>& sccs);
-void par_fwbw(Graph g, SCC_State s);
-void par_wcc(Graph g, SCC_State s, std::vector<int>& work_queue);
-void recur_fwbw(Graph g, int color, std::vector<std::vector<int>>& sccs);
-
-
-// =================================================================
-// Main execution flow
-// =================================================================
-int main() {
-    // 1. Initialize Graph (Read from file, create CSR)
-    Graph g;
-    // ... code to allocate and transfer graph data to d_row_offsets, d_col_indices ...
-
-    // 2. Initialize State
-    SCC_State s;
-    // ... code to allocate d_color, d_mark, d_wcc arrays on the device ...
-    // Initialize color to 0 and mark to false for all nodes[cite: 304].
-
-    // Collection to store the final SCCs on the host
-    std::vector<std::vector<int>> sccs;
-
-    // ===============================================================
-    // Method 2: Algorithm 9 Execution Flow 
-    // ===============================================================
-
-    // --- Phase 1: Parallel Trims, Traversal, and WCC --- [cite: 305]
-
-    // Par-Trim' [cite: 271]
-    par_trim_iterative(g, s, sccs); // Iterative parallel trim
-    par_trim2(g, s, sccs);          // Parallel trim for size-2 SCCs [cite: 242]
-    par_trim_iterative(g, s, sccs); // Another round of iterative parallel trim
-
-    // Parallel Forward-Backward to find the giant SCC [cite: 180, 183, 306]
-    par_fwbw(g, s);
-
-    // Identify Weakly Connected Components in the remaining graph [cite: 235, 308]
-    std::vector<int> work_queue;
-    par_wcc(g, s, work_queue);
-
-    // --- Phase 2: Parallelism in Recursion --- [cite: 200, 309]
-
-    // Process the WCCs as independent tasks
-    // This part can be managed with a task-level parallelism library or a custom queue.
-    for (int color : work_queue) {
-        recur_fwbw(g, color, sccs);
+// Kernel to initialize an array on the device
+__global__ void initializeArrayKernel(int* d_array, int value, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        d_array[idx] = value;
     }
+}
 
-    // 6. Print Results
-    std::cout << "Number of Strongly Connected Components: " << sccs.size() << std::endl;
-    std::cout << "Strongly Connected Components:" << std::endl;
-    for (const auto& scc : sccs) {
-        std::cout << "{ ";
-        for (int node : scc) {
-            std::cout << node << " ";
+// Kernel to initialize a boolean array on the device
+__global__ void initializeBoolArrayKernel(bool* d_array, bool value, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        d_array[idx] = value;
+    }
+}
+
+// Kernel for the first pass: BFS-like traversal to determine an approximate finishing order.
+// This kernel processes one "level" of the BFS.
+__global__ void firstPassKernel(int num_nodes, const int* d_adj_list_starts, const int* d_adj_list_edges,
+                                int* d_visited, int* d_finishing_order, int* d_current_time,
+                                bool* d_queue, bool* d_next_queue, int* d_active_count) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (node_idx < num_nodes) {
+        if (d_queue[node_idx]) { // If this node is active in the current queue
+            // Mark node as visiting/visited (from 0 to 1)
+            // This is effectively "visiting" it for this BFS level
+            atomicExch(&d_visited[node_idx], 1);
+
+            // Process neighbors
+            int start_edge = d_adj_list_starts[node_idx];
+            int end_edge = d_adj_list_starts[node_idx + 1];
+
+            for (int i = start_edge; i < end_edge; ++i) {
+                int neighbor = d_adj_list_edges[i];
+
+                // If neighbor is unvisited (0), try to mark it as visited (1) and add to next queue
+                if (atomicCAS(&d_visited[neighbor], 0, 1) == 0) {
+                    d_next_queue[neighbor] = true; // Add to next level's queue
+                    atomicAdd(d_active_count, 1); // Increment active count for next iteration
+                }
+            }
+
+            // This node is now processed for this level, mark it "finished" for the first pass
+            // and add its "finishing time" (order)
+            // Use atomicExch to ensure only one thread marks it finished
+            if (atomicExch(&d_visited[node_idx], 2) == 1) { // If it was '1' (visiting) and now finished (2)
+                int time = atomicAdd(d_current_time, 1);
+                d_finishing_order[num_nodes - 1 - time] = node_idx; // Store in reverse order for Kosaraju
+            }
+            d_queue[node_idx] = false; // Deactivate from current queue
         }
-        std::cout << "}" << std::endl;
+    }
+}
+
+// Kernel for the second pass: BFS-like traversal on the transposed graph to identify SCCs.
+__global__ void secondPassKernel(int num_nodes, const int* d_transposed_adj_list_starts, const int* d_transposed_adj_list_edges,
+                                 int* d_visited, int* d_scc_id, int current_scc_id,
+                                 bool* d_queue, bool* d_next_queue, int* d_active_count) {
+    int node_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (node_idx < num_nodes) {
+        if (d_queue[node_idx]) { // If this node is active in the current queue
+            // Mark as visited and assign SCC ID
+            atomicExch(&d_visited[node_idx], 1); // Mark as visited (1) for second pass
+            atomicExch(&d_scc_id[node_idx], current_scc_id); // Assign SCC ID
+
+            // Process neighbors in the transposed graph
+            int start_edge = d_transposed_adj_list_starts[node_idx];
+            int end_edge = d_transposed_adj_list_starts[node_idx + 1];
+
+            for (int i = start_edge; i < end_edge; ++i) {
+                int neighbor = d_transposed_adj_list_edges[i];
+                // If neighbor is unvisited (0), try to mark it as visited (1) and add to next queue
+                if (atomicCAS(&d_visited[neighbor], 0, 1) == 0) {
+                    d_next_queue[neighbor] = true; // Add to next level's queue
+                    atomicAdd(d_active_count, 1); // Increment active count for next iteration
+                }
+            }
+            d_queue[node_idx] = false; // Deactivate from current queue
+        }
+    }
+}
+
+// --- Host Code ---
+
+int main(int argc, char* argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <graph_file.txt>" << std::endl;
+        return 1;
     }
 
-    // 7. Free device memory
-    // ...
+    std::ifstream inputFile(argv[1]);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening the file!" << std::endl;
+        return 1;
+    }
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    int V, E;
+    inputFile >> V >> E;
+
+    // Host-side adjacency list representation for building CSR
+    std::vector<std::vector<int>> h_adj(V);
+    std::vector<std::vector<int>> h_adj_transposed(V); // For building transpose
+
+    int u, v_node;
+    for (int i = 0; i < E; ++i) {
+        inputFile >> u >> v_node;
+        h_adj[u].push_back(v_node);
+        h_adj_transposed[v_node].push_back(u); // Building transpose directly
+    }
+    inputFile.close();
+
+    // Convert adjacency list to CSR (Compressed Sparse Row) format for GPU
+    // Original graph
+    std::vector<int> h_adj_list_starts(V + 1, 0);
+    std::vector<int> h_adj_list_edges(E);
+    int current_edge_idx = 0;
+    for (int i = 0; i < V; ++i) {
+        h_adj_list_starts[i] = current_edge_idx;
+        for (int neighbor : h_adj[i]) {
+            h_adj_list_edges[current_edge_idx++] = neighbor;
+        }
+    }
+    h_adj_list_starts[V] = current_edge_idx; // Last element points to total number of edges
+
+    // Transposed graph
+    std::vector<int> h_transposed_adj_list_starts(V + 1, 0);
+    std::vector<int> h_transposed_adj_list_edges(E);
+    current_edge_idx = 0;
+    for (int i = 0; i < V; ++i) {
+        h_transposed_adj_list_starts[i] = current_edge_idx;
+        for (int neighbor : h_adj_transposed[i]) {
+            h_transposed_adj_list_edges[current_edge_idx++] = neighbor;
+        }
+    }
+    h_transposed_adj_list_starts[V] = current_edge_idx; // Last element points to total number of edges
+
+    // --- Device Memory Allocation ---
+    int* d_adj_list_starts;
+    int* d_adj_list_edges;
+    int* d_transposed_adj_list_starts;
+    int* d_transposed_adj_list_edges;
+    int* d_visited;            // 0: unvisited, 1: visiting (in current BFS), 2: visited/finished
+    int* d_finishing_order;    // Stores node indices in their finishing order (reverse order for Kosaraju)
+    int* d_current_time;       // Global counter for finishing times
+    int* d_scc_id;             // Stores SCC ID for each node
+    bool* d_queue;             // For BFS-like traversal
+    bool* d_next_queue;        // For BFS-like traversal
+    int* d_active_count;       // For counting active nodes in queue (to know when BFS level is done)
+
+    CUDA_CHECK(cudaMalloc(&d_adj_list_starts, (V + 1) * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_adj_list_edges, E * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_transposed_adj_list_starts, (V + 1) * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_transposed_adj_list_edges, E * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_visited, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_finishing_order, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_current_time, sizeof(int))); // Single int for global time
+    CUDA_CHECK(cudaMalloc(&d_scc_id, V * sizeof(int)));
+    CUDA_CHECK(cudaMalloc(&d_queue, V * sizeof(bool)));
+    CUDA_CHECK(cudaMalloc(&d_next_queue, V * sizeof(bool)));
+    CUDA_CHECK(cudaMalloc(&d_active_count, sizeof(int))); // For active nodes in queue
+
+    // --- Data Transfer (Host to Device) ---
+    CUDA_CHECK(cudaMemcpy(d_adj_list_starts, h_adj_list_starts.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_adj_list_edges, h_adj_list_edges.data(), E * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_transposed_adj_list_starts, h_transposed_adj_list_starts.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_transposed_adj_list_edges, h_transposed_adj_list_edges.data(), E * sizeof(int), cudaMemcpyHostToDevice));
+
+    // --- CUDA Kernel Launches ---
+
+    int blocks = (V + 255) / 256; // Example block size
+    int threads_per_block = 256;
+
+    // Initialize d_visited to 0, d_scc_id to -1, d_current_time to 0
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_visited, 0, V);
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_scc_id, -1, V);
+    CUDA_CHECK(cudaMemset(d_current_time, 0, sizeof(int))); // Set global time to 0
+    CUDA_CHECK(cudaDeviceSynchronize()); // Ensure initializations are complete
+
+    // --- First Pass: Approximate Finishing Times ---
+    // Iterate through all nodes. If an unvisited node is found, start a new BFS-like traversal from it.
+    std::cout << "Starting First Pass..." << std::endl;
+    for (int start_node = 0; start_node < V; ++start_node) {
+        int visited_status;
+        CUDA_CHECK(cudaMemcpy(&visited_status, d_visited + start_node, sizeof(int), cudaMemcpyDeviceToHost));
+        if (visited_status == 0) { // If node not yet visited, start a new traversal
+            // Initialize queues for this BFS component
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_queue, false, V);
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_next_queue, false, V);
+            CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int))); // Reset active count for this BFS
+
+            // Set the start_node in the current queue
+            bool true_val = true;
+            CUDA_CHECK(cudaMemcpy(d_queue + start_node, &true_val, sizeof(bool), cudaMemcpyHostToDevice));
+            int initial_active = 1;
+            CUDA_CHECK(cudaMemcpy(d_active_count, &initial_active, sizeof(int), cudaMemcpyHostToDevice)); // Set initial active count to 1
+
+            int current_active_nodes = 1;
+            while (current_active_nodes > 0) {
+                // Reset d_active_count for the current kernel launch
+                CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+                firstPassKernel<<<blocks, threads_per_block>>>(
+                    V, d_adj_list_starts, d_adj_list_edges,
+                    d_visited, d_finishing_order, d_current_time,
+                    d_queue, d_next_queue, d_active_count
+                );
+                CUDA_CHECK(cudaDeviceSynchronize()); // Wait for kernel to finish
+
+                // Swap queues for next iteration
+                bool* temp_queue = d_queue;
+                d_queue = d_next_queue;
+                d_next_queue = temp_queue;
+
+                // Get the count of active nodes for the next iteration
+                CUDA_CHECK(cudaMemcpy(&current_active_nodes, d_active_count, sizeof(int), cudaMemcpyDeviceToHost));
+            }
+        }
+    }
+    std::cout << "First Pass Complete." << std::endl;
+
+    // --- Second Pass: Identify SCCs ---
+    // The d_finishing_order stores nodes in the order they finished.
+    // For Kosaraju's, we need to process them in reverse order of finishing times.
+    // Our firstPassKernel stores them in the correct order for Kosaraju, i.e.,
+    // the node that finished last is at index 0, second last at index 1, and so on.
+    // So we iterate d_finishing_order from index 0 to V-1.
+    std::vector<int> h_finishing_order(V);
+    CUDA_CHECK(cudaMemcpy(h_finishing_order.data(), d_finishing_order, V * sizeof(int), cudaMemcpyDeviceToHost));
+
+    int scc_count = 0;
+    // Reinitialize visited array for the second pass
+    initializeArrayKernel<<<blocks, threads_per_block>>>(d_visited, 0, V); // 0: unvisited for this pass
+    CUDA_CHECK(cudaDeviceSynchronize());
+    std::cout << "Starting Second Pass..." << std::endl;
+
+    for (int i = 0; i < V; ++i) {
+        int node = h_finishing_order[i]; // Get node from ordered list
+        int visited_status;
+        CUDA_CHECK(cudaMemcpy(&visited_status, d_visited + node, sizeof(int), cudaMemcpyDeviceToHost));
+
+        if (visited_status == 0) { // If node not yet visited in this pass, it's the start of a new SCC
+            scc_count++;
+            // Start a new BFS-like traversal on the transposed graph
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_queue, false, V);
+            initializeBoolArrayKernel<<<blocks, threads_per_block>>>(d_next_queue, false, V);
+            CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+            bool true_val = true;
+            CUDA_CHECK(cudaMemcpy(d_queue + node, &true_val, sizeof(bool), cudaMemcpyHostToDevice));
+            int initial_active = 1;
+            CUDA_CHECK(cudaMemcpy(d_active_count, &initial_active, sizeof(int), cudaMemcpyHostToDevice));
+
+            int current_active_nodes = 1;
+            while (current_active_nodes > 0) {
+                CUDA_CHECK(cudaMemset(d_active_count, 0, sizeof(int)));
+
+                secondPassKernel<<<blocks, threads_per_block>>>(
+                    V, d_transposed_adj_list_starts, d_transposed_adj_list_edges,
+                    d_visited, d_scc_id, scc_count, // Pass current SCC ID
+                    d_queue, d_next_queue, d_active_count
+                );
+                CUDA_CHECK(cudaDeviceSynchronize());
+
+                // Swap queues
+                bool* temp_queue = d_queue;
+                d_queue = d_next_queue;
+                d_next_queue = temp_queue;
+
+                // Get the count of active nodes for the next iteration
+                CUDA_CHECK(cudaMemcpy(&current_active_nodes, d_active_count, sizeof(int), cudaMemcpyDeviceToHost));
+            }
+        }
+    }
+    std::cout << "Second Pass Complete." << std::endl;
+
+    std::cout << "Number of Strongly Connected Components: " << scc_count << std::endl;
+
+    // Optionally, print SCCs (copy d_scc_id back to host)
+    std::vector<int> h_scc_id(V);
+    CUDA_CHECK(cudaMemcpy(h_scc_id.data(), d_scc_id, V * sizeof(int), cudaMemcpyDeviceToHost));
+
+    std::cout << "\nNode to SCC ID mapping:" << std::endl;
+    for (int i = 0; i < V; ++i) {
+        std::cout << "Node " << i << ": SCC " << h_scc_id[i] << std::endl;
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    double time_taken_seconds = std::chrono::duration<double>(end_time - start_time).count();
+
+    // --- Performance Metrics (Approximation) ---
+    // Memory accessed:
+    // 2x (V+1) for starts array (original + transposed)
+    // 2x E for edges array (original + transposed)
+    // V for visited array
+    // V for finishing_order array
+    // V for scc_id array
+    // 2x V for queue arrays
+    // A few ints for counters.
+    // All in bytes
+    double bytes_accessed = (2.0 * (V + 1) * sizeof(int)) + (2.0 * E * sizeof(int)) +
+                            (V * sizeof(int)) + (V * sizeof(int)) + (V * sizeof(int)) +
+                            (2.0 * V * sizeof(bool)) + (2 * sizeof(int));
+
+    double gb_accessed = bytes_accessed / (1024.0 * 1024.0 * 1024.0); // Convert to GB
+    double throughput_gbps = gb_accessed / time_taken_seconds;
+
+    std::cout << "\nTotal Execution Time: " << time_taken_seconds * 1000 << " ms" << std::endl;
+    std::cout << "Estimated Memory Access: " << gb_accessed << " GB" << std::endl;
+    std::cout << "Estimated Memory Throughput: " << throughput_gbps << " GB/s" << std::endl;
+
+    // --- Cleanup ---
+    CUDA_CHECK(cudaFree(d_adj_list_starts));
+    CUDA_CHECK(cudaFree(d_adj_list_edges));
+    CUDA_CHECK(cudaFree(d_transposed_adj_list_starts));
+    CUDA_CHECK(cudaFree(d_transposed_adj_list_edges));
+    CUDA_CHECK(cudaFree(d_visited));
+    CUDA_CHECK(cudaFree(d_finishing_order));
+    CUDA_CHECK(cudaFree(d_current_time));
+    CUDA_CHECK(cudaFree(d_scc_id));
+    CUDA_CHECK(cudaFree(d_queue));
+    CUDA_CHECK(cudaFree(d_next_queue));
+    CUDA_CHECK(cudaFree(d_active_count));
 
     return 0;
-}
-
-
-// =================================================================
-// Kernel and Function Implementations (Pseudo-code)
-// =================================================================
-
-/**
- * @brief Iteratively applies the parallel trim operation.
- * This corresponds to the Par-Trim part of the algorithm[cite: 148].
- * It repeatedly finds nodes with in-degree or out-degree of 0 within their color partition.
- */
-void par_trim_iterative(Graph g, SCC_State s, std::vector<std::vector<int>>& sccs) {
-    bool changed = true;
-    while (changed) {
-        // Launch a kernel to check in/out degrees for all non-marked nodes
-        // par_trim_kernel<<<...>>>(g, s);
-
-        // This kernel will set mark=true and color=-1 for trivial SCCs[cite: 153, 154].
-        // A reduction or flag is needed to check if any node's color changed.
-        // Copy newly found SCCs back to the host.
-        // The loop terminates when a full pass finds no new trivial SCCs[cite: 155].
-    }
-}
-
-/**
- * @brief Detects size-2 SCCs in parallel. [cite: 242]
- * Implements Algorithm 8 from the paper[cite: 283].
- */
-void par_trim2(Graph g, SCC_State s, std::vector<std::vector<int>>& sccs) {
-    // Launch a kernel that checks for the specific patterns of size-2 SCCs
-    // as shown in Figure 4 [cite: 216] and described in Algorithm 8[cite: 283].
-    // par_trim2_kernel<<<...>>>(g, s);
-
-    // This kernel marks both nodes of a size-2 SCC and sets their color[cite: 293, 298].
-    // Copy newly found SCCs back to the host.
-}
-
-/**
- * @brief Parallel Forward-Backward step to find the giant SCC.
- * Uses parallel BFS for forward and backward traversals[cite: 183].
- */
-void par_fwbw(Graph g, SCC_State s) {
-    // 1. Choose a random pivot from the main partition (color 0).
-    // 2. Launch parallel BFS kernels for forward and backward traversals from the pivot.
-    //    These kernels update the `d_color` array to identify the FW and BW sets.
-    // 3. Launch a kernel to find the intersection of FW and BW sets, which is the giant SCC.
-    //    Mark these nodes as `true` in `d_mark`.
-    // 4. Update the work queue or remaining partitions for the next steps.
-}
-
-/**
- * @brief Finds weakly connected components in parallel.
- * Implements Algorithm 7 from the paper[cite: 247].
- */
-void par_wcc(Graph g, SCC_State s, std::vector<int>& work_queue) {
-    // This is a label propagation algorithm.
-    // 1. Initialize each non-marked node's WCC to itself[cite: 250].
-    // 2. Iteratively launch a kernel where each node adopts the smallest WCC ID from its neighbors
-    //    within the same color partition[cite: 252, 253, 256].
-    // 3. This continues until no more changes occur (convergence)[cite: 259].
-    // 4. Once converged, each unique WCC ID represents a partition.
-    //    Assign a new color to each WCC and add it to the host-side work queue[cite: 261, 263].
-}
-
-/**
- * @brief The recursive, task-parallel part of the algorithm.
- * This function is called for each work item (a colored partition).
- * It's based on Algorithm 5, but here it's executed on the host,
- * calling device kernels for traversals.
- */
-void recur_fwbw(Graph g, int color, std::vector<std::vector<int>>& sccs) {
-    // 1. Pick a pivot from the partition with the given `color`.
-    // 2. Perform forward and backward traversals (can use sequential or parallel BFS/DFS)
-    //    from the pivot within the colored partition.
-    // 3. Identify the SCC (intersection), FW-only, and BW-only sets.
-    // 4. Add the identified SCC to the host `sccs` vector.
-    // 5. Recursively call `recur_fwbw` for the new FW-only and BW-only partitions.
-    //    In a true parallel implementation, these would be new tasks added to a queue.
 }
