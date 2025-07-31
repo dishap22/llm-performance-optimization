@@ -1,0 +1,185 @@
+--------------------------------------------------------------------------------
+Profile data file 'callgrind.out.253332' (creator: callgrind-3.18.1)
+--------------------------------------------------------------------------------
+I1 cache: 
+D1 cache: 
+LL cache: 
+Timerange: Basic block 0 - 54311436016
+Trigger: Program termination
+Profiled target:  ./spgemm_cpu_exec (PID 253332, part 1)
+Events recorded:  Ir
+Events shown:     Ir
+Event sort order: Ir
+Thresholds:       99
+Include dirs:     
+User annotated:   
+Auto-annotation:  on
+
+--------------------------------------------------------------------------------
+Ir                       
+--------------------------------------------------------------------------------
+392,345,381,822 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir                        file:function
+--------------------------------------------------------------------------------
+130,590,571,381 (33.28%)  ???:spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) [clone ._omp_fn.0] [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+ 33,790,236,756 ( 8.61%)  ???:std::vector<float, std::allocator<float> >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+ 33,105,824,640 ( 8.44%)  ???:std::vector<int, std::allocator<int> >::operator[](unsigned long) const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+ 33,025,195,704 ( 8.42%)  ???:std::vector<float, std::allocator<float> >::operator[](unsigned long) const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+ 30,605,284,941 ( 7.80%)  ???:std::vector<char, std::allocator<char> >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+ 15,276,544,537 ( 3.89%)  ./stdio-common/./stdio-common/printf_fp.c:__printf_fp_l [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  6,012,099,885 ( 1.53%)  ./stdio-common/./stdio-common/printf_fp.c:hack_digit [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  5,241,585,401 ( 1.34%)  ./stdlib/./stdlib/divrem.c:__mpn_divrem [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  5,194,239,720 ( 1.32%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator*() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  4,941,178,725 ( 1.26%)  ???:bool __gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>::operator()<__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  4,596,957,184 ( 1.17%)  ./stdio-common/./stdio-common/vfprintf-internal.c:__vfprintf_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  3,489,716,399 ( 0.89%)  ???:std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_float(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, std::string&) const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  3,370,469,440 ( 0.86%)  ???:auto spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}::operator()<std::pair<int, float>, std::pair<int, float> >(std::pair<int, float> const&, std::pair<int, float> const&) const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  3,148,644,905 ( 0.80%)  ./stdlib/./stdlib/strtod_l.c:____strtof_l_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  2,752,548,947 ( 0.70%)  ???:std::basic_filebuf<char, std::char_traits<char> >::xsputn(char const*, long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  2,648,376,383 ( 0.68%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > std::__unguarded_partition<__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  2,605,812,405 ( 0.66%)  ./stdlib/../sysdeps/x86_64/mul_1.S:__mpn_mul_1 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  2,549,466,440 ( 0.65%)  ???:std::basic_streambuf<char, std::char_traits<char> >::xsputn(char const*, long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  2,466,240,696 ( 0.63%)  ???:std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_float<double>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, char, double) const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  2,094,310,162 ( 0.53%)  ???:std::istreambuf_iterator<char, std::char_traits<char> > std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::_M_extract_int<long>(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, long&) const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  1,909,618,332 ( 0.49%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator--() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,909,290,168 ( 0.49%)  ???:void std::__unguarded_linear_insert<__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,879,277,792 ( 0.48%)  ???:std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  1,857,623,347 ( 0.47%)  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S:__memcpy_avx_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+  1,725,583,772 ( 0.44%)  ???:std::pair<int, float>::operator=(std::pair<int, float>&&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,560,674,586 ( 0.40%)  ???:std::ostreambuf_iterator<char, std::char_traits<char> > std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > >::_M_insert_int<long>(std::ostreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, char, long) const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  1,543,692,525 ( 0.39%)  ???:std::ostream::sentry::sentry(std::ostream&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+  1,493,410,496 ( 0.38%)  ???:spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&) [clone ._omp_fn.1] [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,328,044,860 ( 0.34%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator++() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,170,771,564 ( 0.30%)  ???:bool __gnu_cxx::__ops::_Val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>::operator()<std::pair<int, float>, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > >(std::pair<int, float>&, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,127,657,784 ( 0.29%)  ???:std::vector<int, std::allocator<int> >::push_back(int const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,105,708,000 ( 0.28%)  ???:std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<float> >, std::is_move_constructible<float>, std::is_move_assignable<float> >::value, void>::type std::swap<float>(float&, float&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,105,708,000 ( 0.28%)  ???:std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<int> >, std::is_move_constructible<int>, std::is_move_assignable<int> >::value, void>::type std::swap<int>(int&, int&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+  1,044,106,330 ( 0.27%)  ???:0x000000000012e8f0 [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    986,758,521 ( 0.25%)  ???:0x000000000012b240 [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    956,534,997 ( 0.24%)  ???:std::ostream& std::ostream::_M_insert<long>(long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    956,301,324 ( 0.24%)  ???:std::ostream& std::ostream::_M_insert<double>(double) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    956,301,312 ( 0.24%)  ./libio/./libio/vsnprintf.c:__vsnprintf_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    855,638,016 ( 0.22%)  ???:0x00000000000fb400 [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    845,743,752 ( 0.22%)  ???:void __gnu_cxx::new_allocator<int>::construct<int, int const&>(int*, int const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    832,665,050 ( 0.21%)  ???:std::istream::sentry::sentry(std::istream&, bool) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    805,306,368 ( 0.21%)  ./libio/./libio/strops.c:_IO_str_init_static_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    798,654,456 ( 0.20%)  ./string/../sysdeps/x86_64/multiarch/strlen-avx2.S:__strlen_avx2 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    792,854,328 ( 0.20%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::base() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    765,196,728 ( 0.20%)  ???:void std::allocator_traits<std::allocator<int> >::construct<int, int const&>(std::allocator<int>&, int*, int const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    744,488,314 ( 0.19%)  ./stdlib/./stdlib/strtod_l.c:str_to_mpn.constprop.0 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    738,197,548 ( 0.19%)  ./locale/./locale/uselocale.c:uselocale [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    725,620,875 ( 0.18%)  ???:std::pair<int, float>::swap(std::pair<int, float>&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    725,620,875 ( 0.18%)  ???:std::remove_reference<float&>::type&& std::move<float&>(float&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    725,620,875 ( 0.18%)  ???:std::remove_reference<int&>::type&& std::move<int&>(int&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    725,620,875 ( 0.18%)  ???:void std::iter_swap<__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    704,643,030 ( 0.18%)  ???:std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > >::do_get(std::istreambuf_iterator<char, std::char_traits<char> >, std::istreambuf_iterator<char, std::char_traits<char> >, std::ios_base&, std::_Ios_Iostate&, float&) const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    691,067,600 ( 0.18%)  ???:bool __gnu_cxx::operator< <std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > const&, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    657,666,672 ( 0.17%)  ???:std::vector<float, std::allocator<float> >::push_back(float const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    644,376,192 ( 0.16%)  ???:operator new(unsigned long, void*) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    637,612,108 ( 0.16%)  ???:std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    637,534,208 ( 0.16%)  ./string/../sysdeps/x86_64/multiarch/strchr-avx2.S:__strchrnul_avx2 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    603,979,776 ( 0.15%)  ./stdlib/../sysdeps/x86_64/rshift.S:__mpn_rshift [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    603,979,776 ( 0.15%)  ???:std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    563,830,134 ( 0.14%)  ???:int const& std::forward<int const&>(std::remove_reference<int const&>::type&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    549,049,382 ( 0.14%)  ???:float&& std::forward<float>(std::remove_reference<float>::type&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    549,049,382 ( 0.14%)  ???:int&& std::forward<int>(std::remove_reference<int>::type&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    549,023,839 ( 0.14%)  ???:std::remove_reference<std::pair<int, float>&>::type&& std::move<std::pair<int, float>&>(std::pair<int, float>&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    520,093,696 ( 0.13%)  ???:std::__num_base::_S_format_float(std::ios_base const&, char*, char) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    503,439,360 ( 0.13%)  ???:std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    503,377,920 ( 0.13%)  ???:std::vector<std::vector<float, std::allocator<float> >, std::allocator<std::vector<float, std::allocator<float> > > >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    493,250,142 ( 0.13%)  ???:void __gnu_cxx::new_allocator<float>::construct<float, float const&>(float*, float const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    483,747,250 ( 0.12%)  ???:std::enable_if<std::__and_<std::__is_swappable<int>, std::__is_swappable<float> >::value, void>::type std::swap<int, float>(std::pair<int, float>&, std::pair<int, float>&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    483,183,728 ( 0.12%)  ./stdlib/../sysdeps/x86_64/lshift.S:__mpn_lshift [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    446,273,938 ( 0.11%)  ???:void std::allocator_traits<std::allocator<float> >::construct<float, float const&>(std::allocator<float>&, float*, float const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    443,189,010 ( 0.11%)  ???:0x000000000012faf0 [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    430,937,810 ( 0.11%)  ./malloc/./malloc/malloc.c:_int_free [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    419,532,911 ( 0.11%)  ???:write_vector_int(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<int, std::allocator<int> > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    419,430,443 ( 0.11%)  ???:write_vector_float(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::vector<float, std::allocator<float> > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    402,751,488 ( 0.10%)  ???:std::vector<int, std::allocator<int> >::operator[](unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    402,653,496 ( 0.10%)  ./libio/./libio/genops.c:_IO_setb [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    385,876,328 ( 0.10%)  ./libio/./libio/genops.c:_IO_no_init [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    385,876,268 ( 0.10%)  ./libio/./libio/genops.c:_IO_old_init [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    385,564,962 ( 0.10%)  ???:__gnu_cxx::__ops::_Val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}> __gnu_cxx::__ops::__val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>(__gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    382,595,826 ( 0.10%)  ???:std::locale::id::_M_id() const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    369,098,752 ( 0.09%)  ./stdlib/../sysdeps/ieee754/dbl-64/dbl2mpn.c:__mpn_extract_double [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    369,098,752 ( 0.09%)  ???:std::pair<int, float>::pair<int&, float&, true>(int&, float&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    362,830,640 ( 0.09%)  ???:std::istream::operator>>(int&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    348,970,667 ( 0.09%)  ./stdlib/./stdlib/strtod_l.c:round_and_return [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    335,708,180 ( 0.09%)  ???:bool __gnu_cxx::operator!=<int*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    335,708,160 ( 0.09%)  ???:bool __gnu_cxx::operator!=<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > const&, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    335,626,300 ( 0.09%)  ???:bool __gnu_cxx::operator!=<int const*, std::vector<int, std::allocator<int> > >(__gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > > const&, __gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    335,544,340 ( 0.09%)  ???:bool __gnu_cxx::operator!=<float const*, std::vector<float, std::allocator<float> > >(__gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > > const&, __gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > > const&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    335,544,320 ( 0.09%)  ./string/../sysdeps/x86_64/multiarch/memchr-avx2.S:__memchr_avx2 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    328,833,750 ( 0.08%)  ???:float const& std::forward<float const&>(std::remove_reference<float const&>::type&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    315,411,694 ( 0.08%)  ???:std::istream& std::istream::_M_extract<float>(float&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    301,959,720 ( 0.08%)  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S:__mempcpy_avx_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    289,281,105 ( 0.07%)  ./malloc/./malloc/malloc.c:malloc [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    279,295,380 ( 0.07%)  ./stdlib/./stdlib/mul.c:__mpn_mul [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    234,999,604 ( 0.06%)  ???:__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::base() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    234,938,410 ( 0.06%)  ???:__gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::base() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    234,881,038 ( 0.06%)  ???:__gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::base() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    234,881,024 ( 0.06%)  ./stdio-common/../libio/libioP.h:__vfprintf_internal
+    234,881,024 ( 0.06%)  ???:void std::_Construct<std::pair<int, float>>(std::pair<int, float>*) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    234,881,010 ( 0.06%)  ???:std::string::push_back(char) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    234,061,824 ( 0.06%)  ???:void std::__unguarded_insertion_sort<__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}> >(__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >, __gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    228,170,124 ( 0.06%)  ???:void std::__convert_to_v<float>(char const*, float&, std::_Ios_Iostate&, __locale_struct* const&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    211,393,044 ( 0.05%)  ???:std::locale::facet::_S_get_c_locale() [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    201,449,550 ( 0.05%)  ???:0x0000000000103500 [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    201,424,920 ( 0.05%)  ???:__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator++() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    201,385,008 ( 0.05%)  ???:std::codecvt<char, char, __mbstate_t>::do_always_noconv() const [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    201,375,756 ( 0.05%)  ???:__gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::operator++() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    201,326,640 ( 0.05%)  ./stdlib/./stdlib/cmp.c:__mpn_cmp [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    201,326,592 ( 0.05%)  ???:__gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::operator++() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    201,326,592 ( 0.05%)  ???:std::pair<int, float>::pair<int, float, true>() [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    201,326,580 ( 0.05%)  ???:std::string::reserve(unsigned long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    184,594,465 ( 0.05%)  ???:std::ostream::operator<<(int) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    184,549,684 ( 0.05%)  ???:std::ctype<char> const& std::use_facet<std::ctype<char> >(std::locale const&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    184,549,376 ( 0.05%)  ./nptl/./nptl/alloca_cutoff.c:__libc_alloca_cutoff [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    184,400,634 ( 0.05%)  ???:__gnu_cxx::__ops::_Val_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>::_Val_comp_iter(__gnu_cxx::__ops::_Iter_comp_iter<spgemm_cpu(CSRMatrix const&, CSRMatrix const&, CSRMatrix&)::{lambda(auto:1 const&, auto:2 const&)#1}>&&) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    167,773,255 ( 0.04%)  ./libio/./libio/genops.c:_IO_default_xsputn [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    167,772,150 ( 0.04%)  ???:std::string::_Rep::_M_clone(std::allocator<char> const&, unsigned long) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    167,736,937 ( 0.04%)  ???:0x00000000048fe0f0 [???]
+    151,064,576 ( 0.04%)  ???:std::pair<int, float>* std::__uninitialized_default_n_1<false>::__uninit_default_n<std::pair<int, float>*, unsigned long>(std::pair<int, float>*, unsigned long) [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    150,994,944 ( 0.04%)  ./stdio-common/./stdio-common/printf-parse.h:__vfprintf_internal
+    147,915,875 ( 0.04%)  ./malloc/./malloc/malloc.c:free [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    140,928,790 ( 0.04%)  ./nptl/./nptl/pthread_once.c:pthread_once@@GLIBC_2.34 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    137,567,092 ( 0.04%)  ???:__gnu_cxx::__normal_iterator<std::pair<int, float>*, std::vector<std::pair<int, float>, std::allocator<std::pair<int, float> > > >::operator+(long) const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    134,283,288 ( 0.03%)  ???:__gnu_cxx::__normal_iterator<int*, std::vector<int, std::allocator<int> > >::operator*() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    134,250,504 ( 0.03%)  ???:__gnu_cxx::__normal_iterator<int const*, std::vector<int, std::allocator<int> > >::operator*() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    134,234,137 ( 0.03%)  ???:0x00000000048fe1f0 [???]
+    134,217,728 ( 0.03%)  ./stdio-common/../sysdeps/generic/get-rounding-mode.h:__printf_fp_l
+    134,217,728 ( 0.03%)  ???:__gnu_cxx::__normal_iterator<float const*, std::vector<float, std::allocator<float> > >::operator*() const [/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/cpu/spgemm_cpu_exec]
+    134,217,720 ( 0.03%)  ???:std::string::_Rep::_S_create(unsigned long, unsigned long, std::allocator<char> const&) [/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.30]
+    134,182,447 ( 0.03%)  ???:0x00000000048fc8d0 [???]
+    127,531,803 ( 0.03%)  ???:0x00000000048fb6b0 [???]
+
+--------------------------------------------------------------------------------
+The following files chosen for auto-annotation could not be found:
+--------------------------------------------------------------------------------
+  ./libio/./libio/genops.c
+  ./libio/./libio/strops.c
+  ./libio/./libio/vsnprintf.c
+  ./locale/./locale/uselocale.c
+  ./malloc/./malloc/malloc.c
+  ./nptl/./nptl/alloca_cutoff.c
+  ./nptl/./nptl/pthread_once.c
+  ./stdio-common/../libio/libioP.h
+  ./stdio-common/../sysdeps/generic/get-rounding-mode.h
+  ./stdio-common/./stdio-common/printf-parse.h
+  ./stdio-common/./stdio-common/printf_fp.c
+  ./stdio-common/./stdio-common/vfprintf-internal.c
+  ./stdlib/../sysdeps/ieee754/dbl-64/dbl2mpn.c
+  ./stdlib/../sysdeps/x86_64/lshift.S
+  ./stdlib/../sysdeps/x86_64/mul_1.S
+  ./stdlib/../sysdeps/x86_64/rshift.S
+  ./stdlib/./stdlib/cmp.c
+  ./stdlib/./stdlib/divrem.c
+  ./stdlib/./stdlib/mul.c
+  ./stdlib/./stdlib/strtod_l.c
+  ./string/../sysdeps/x86_64/multiarch/memchr-avx2.S
+  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S
+  ./string/../sysdeps/x86_64/multiarch/strchr-avx2.S
+  ./string/../sysdeps/x86_64/multiarch/strlen-avx2.S
+

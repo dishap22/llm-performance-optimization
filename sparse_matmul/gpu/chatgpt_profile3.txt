@@ -1,0 +1,174 @@
+==PROF== Connected to process 259831 (/home/dishapant/Desktop/llm-performance-optimization/sparse_matmul/gpu/spgemm_exec)
+==PROF== Profiling "spgemm_count_kernel" - 0: 0%..
+==WARNING== Launching the workload is taking more time than expected. If this continues to hang, terminate the profile and re-try by profiling the range of all related launches using '--replay-mode range'. See https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#replay for more details.
+..50%....100% - 8 passes
+==PROF== Profiling "spgemm_compute_kernel" - 1: 0%....50%....100% - 8 passes
+Saved C matrix to C_indptr.txt, C_indices.txt, C_data.txt, C_shape.txt
+==PROF== Disconnected from process 259831
+[259831] spgemm_exec@127.0.0.1
+  spgemm_count_kernel(const int *, const int *, const int *, const int *, int, int, int *, int *) (1024, 1, 1)x(128, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ----------------
+    Metric Name             Metric Unit     Metric Value
+    ----------------------- ----------- ----------------
+    DRAM Frequency                  Mhz           807.98
+    SM Frequency                    Mhz           210.00
+    Elapsed Cycles                cycle    1,042,185,773
+    Memory Throughput                 %            64.38
+    DRAM Throughput                   %            64.38
+    Duration                          s             4.96
+    L1/TEX Cache Throughput           %            30.36
+    L2 Cache Throughput               %             9.65
+    SM Active Cycles              cycle 1,035,960,500.27
+    Compute (SM) Throughput           %             1.42
+    ----------------------- ----------- ----------------
+
+    OPT   Memory is more heavily utilized than Compute: Look at the Memory Workload Analysis section to identify the    
+          DRAM bottleneck. Check memory replay (coalescing) metrics to make sure you're efficiently utilizing the       
+          bytes transferred. Also consider whether it is possible to do more work per memory access (kernel fusion) or  
+          whether there are values you can (re)compute.                                                                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   128
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                  1,024
+    Registers Per Thread             register/thread              18
+    Shared Memory Configuration Size           Kbyte           16.38
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              30
+    Stack Size                                                 1,024
+    Threads                                   thread         131,072
+    # TPCs                                                        15
+    Enabled TPC IDs                                              all
+    Uses Green Context                                             0
+    Waves Per SM                                                2.84
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 33.33%                                                                                          
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 2 full waves and a partial wave of 304 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, this partial wave may account for  
+          up to 33.3% of the total runtime of this kernel. Try launching a grid with no partial wave. The overall       
+          impact of this tail effect also lessens with the number of full waves executed for a grid. See the Hardware   
+          Model (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for     
+          more details on launch configurations.                                                                        
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           21
+    Block Limit Shared Mem                block           16
+    Block Limit Warps                     block           12
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        94.70
+    Achieved Active Warps Per SM           warp        45.46
+    ------------------------------- ----------- ------------
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ----------------
+    Metric Name                Metric Unit     Metric Value
+    -------------------------- ----------- ----------------
+    Average DRAM Active Cycles       cycle 2,581,574,877.33
+    Total DRAM Elapsed Cycles        cycle   24,058,865,664
+    Average L1 Active Cycles         cycle 1,035,960,500.27
+    Total L1 Elapsed Cycles          cycle   31,220,045,160
+    Average L2 Active Cycles         cycle 2,987,214,907.58
+    Total L2 Elapsed Cycles          cycle   71,464,167,312
+    Average SM Active Cycles         cycle 1,035,960,500.27
+    Total SM Elapsed Cycles          cycle   31,220,045,160
+    Average SMSP Active Cycles       cycle 1,034,814,171.73
+    Total SMSP Elapsed Cycles        cycle  124,880,180,640
+    -------------------------- ----------- ----------------
+
+  spgemm_compute_kernel(const int *, const int *, const float *, const int *, const int *, const float *, const int *, int *, float *, int, int, float *, int *) (1024, 1, 1)x(128, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ----------------
+    Metric Name             Metric Unit     Metric Value
+    ----------------------- ----------- ----------------
+    DRAM Frequency                  Mhz           807.98
+    SM Frequency                    Mhz           210.00
+    Elapsed Cycles                cycle    1,324,533,105
+    Memory Throughput                 %            56.74
+    DRAM Throughput                   %            56.74
+    Duration                          s             6.31
+    L1/TEX Cache Throughput           %            39.56
+    L2 Cache Throughput               %            15.14
+    SM Active Cycles              cycle 1,332,320,041.13
+    Compute (SM) Throughput           %             2.19
+    ----------------------- ----------- ----------------
+
+    OPT   This workload exhibits low compute throughput and memory bandwidth utilization relative to the peak           
+          performance of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak           
+          typically indicate latency issues. Look at Scheduler Statistics and Warp State Statistics for potential       
+          reasons.                                                                                                      
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                   128
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                  1,024
+    Registers Per Thread             register/thread              40
+    Shared Memory Configuration Size           Kbyte           16.38
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block       byte/block               0
+    Static Shared Memory Per Block        byte/block               0
+    # SMs                                         SM              30
+    Stack Size                                                 1,024
+    Threads                                   thread         131,072
+    # TPCs                                                        15
+    Enabled TPC IDs                                              all
+    Uses Green Context                                             0
+    Waves Per SM                                                2.84
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 33.33%                                                                                          
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 2 full waves and a partial wave of 304 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, this partial wave may account for  
+          up to 33.3% of the total runtime of this kernel. Try launching a grid with no partial wave. The overall       
+          impact of this tail effect also lessens with the number of full waves executed for a grid. See the Hardware   
+          Model (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for     
+          more details on launch configurations.                                                                        
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           12
+    Block Limit Shared Mem                block           16
+    Block Limit Warps                     block           12
+    Theoretical Active Warps per SM        warp           48
+    Theoretical Occupancy                     %          100
+    Achieved Occupancy                        %        93.00
+    Achieved Active Warps Per SM           warp        44.64
+    ------------------------------- ----------- ------------
+
+    Section: GPU and Memory Workload Distribution
+    -------------------------- ----------- ----------------
+    Metric Name                Metric Unit     Metric Value
+    -------------------------- ----------- ----------------
+    Average DRAM Active Cycles       cycle 2,891,771,922.67
+    Total DRAM Elapsed Cycles        cycle   30,576,857,088
+    Average L1 Active Cycles         cycle 1,332,320,041.13
+    Total L1 Elapsed Cycles          cycle   40,278,044,440
+    Average L2 Active Cycles         cycle 3,818,897,529.92
+    Total L2 Elapsed Cycles          cycle   90,825,127,152
+    Average SM Active Cycles         cycle 1,332,320,041.13
+    Total SM Elapsed Cycles          cycle   40,278,044,440
+    Average SMSP Active Cycles       cycle 1,327,354,601.90
+    Total SMSP Elapsed Cycles        cycle  161,112,177,760
+    -------------------------- ----------- ----------------
+

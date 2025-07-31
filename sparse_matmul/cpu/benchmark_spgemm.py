@@ -13,7 +13,7 @@ from pathlib import Path
 matrix_sizes = [256, 512, 1024, 2048, 4096]  # Matrix sizes to test
 densities = [0.05, 0.1, 0.2]     # Different sparsity patterns
 warmup_runs = 3                         # Number of warmup runs
-benchmark_runs = 10                     # Number of benchmark runs
+benchmark_runs = 5                     # Number of benchmark runs
 cpu_dir = os.path.dirname(os.path.abspath(__file__))
 utils_dir = os.path.abspath(os.path.join(cpu_dir, '../utils'))
 exec_name = "spgemm_cpu_benchmark"
@@ -26,7 +26,9 @@ IMPLEMENTATIONS = {
     "chatgpt_2.cpp": "ChatGPT 1st Implementation",
     "gemini_1.cpp": "Gemini 1st Implementation",
     "chatgpt_3.cpp": "ChatGPT 2nd Implementation",
-    "gemini_2.cpp": "Gemini 2nd Implementation"
+    "gemini_2.cpp": "Gemini 2nd Implementation",
+    "chatgpt_4.cpp": "ChatGPT 3rd Implementation",
+    "gemini_3.cpp": "Gemini 3rd Implementation"
 }
 
 def generate_matrices(n, density=0.1):

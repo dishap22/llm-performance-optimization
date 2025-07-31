@@ -8,7 +8,9 @@ IMPLEMENTATIONS = {
     "chatgpt_2.cpp": "ChatGPT 1st Implementation",
     "gemini_1.cpp": "Gemini 1st Implementation",
     "chatgpt_3.cpp": "ChatGPT 2nd Implementation",
-    "gemini_2.cpp": "Gemini 2nd Implementation"
+    "gemini_2.cpp": "Gemini 2nd Implementation",
+    "chatgpt_4.cpp": "ChatGPT 3rd Implementation",
+    "gemini_3.cpp": "Gemini 3rd Implementation"
 }
 
 def plot_linear_ticks(results_df, save_path="benchmark_results_linear_ticks.png"):
