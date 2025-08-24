@@ -18,6 +18,7 @@ Sample commands to compile the LLM written code:
 `g++ -std=c++17 -fopenmp -I../utils main.cpp gemini_2.cpp ../utils/csr_io.cpp  -o spgemm_cpu_exec`
 
 `g++ -std=c++17 -fopenmp -I../utils main.cpp chatgpt_3.cpp ../utils/csr_io.cpp -o spgemm_cpu_exec`
+g++ -std=c++17 -fopenmp -I../utils main.cpp ../monsoon-25/cpu/1.cpp ../utils/csr_io.cpp  -o spgemm_cpu_exec
 
 
 Perf:

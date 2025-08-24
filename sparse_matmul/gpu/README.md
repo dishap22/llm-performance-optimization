@@ -15,6 +15,7 @@ Sample Commands:
 `nvcc -std=c++17 main.cpp ../utils/csr_io.cpp chatgpt_7.cu -o spgemm_exec`
 
 `nvcc -std=c++17 main.cpp ../utils/csr_io.cpp gemini_7.cu -o spgemm_exec`
+nvcc -std=c++17 main.cpp ../utils/csr_io.cpp ../monsoon-25/gpu/1.cu -o spgemm_exec
 
 
 Profiling done using Nsight Compute, for e.g. `sudo ~/tools/nsight-compute/ncu ./spgemm_exec`
