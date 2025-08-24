@@ -42,7 +42,13 @@ int main(int argc, char* argv[]) {
 
         // --- 3. Calculate and Print Average ---
         double average_time = total_execution_time / num_runs;
+
+        long long nnz_C = C.data.size();
+        double total_flops = 2.0 * nnz_C * num_runs;
+        double gflops = (total_flops / total_execution_time) / 1e9;
+
         std::cout << "Average Execution Time (" << num_runs << " runs): " << average_time << " seconds" << std::endl;
+        std::cout << "Performance: " << gflops << " GFLOPS" << std::endl;
 
         std::cout << "SpGEMM complete. Result matrix C: " << C.rows << "x" << C.cols << ", nnz=" << C.data.size() << std::endl;
 
